@@ -32,7 +32,7 @@ enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 
 <dependencies>
     <dependency>
-        <groupId>com.github.wcqtech</groupId>
+        <groupId>com.github.wcqtech.devkit</groupId>
         <artifactId>enum-dict-spring-boot-starter</artifactId>
         <version>${version}</version>
     </dependency>
@@ -45,7 +45,7 @@ enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 
 ```xml
 <dependency>
-    <groupId>com.github.wcqtech</groupId>
+    <groupId>com.github.wcqtech.devkit</groupId>
     <artifactId>enum-dict-core</artifactId>
     <version>${version}</version>
 </dependency>

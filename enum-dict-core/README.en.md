@@ -27,7 +27,7 @@ Add the dependency through JitPack. Spring Boot projects can include the starter
 
 <dependencies>
     <dependency>
-        <groupId>com.github.wcqtech</groupId>
+        <groupId>com.github.wcqtech.devkit</groupId>
         <artifactId>enum-dict-spring-boot-starter</artifactId>
         <version>${version}</version>
     </dependency>
@@ -40,7 +40,7 @@ If only the registry is needed, include `enum-dict-core`:
 
 ```xml
 <dependency>
-    <groupId>com.github.wcqtech</groupId>
+    <groupId>com.github.wcqtech.devkit</groupId>
     <artifactId>enum-dict-core</artifactId>
     <version>${version}</version>
 </dependency>
