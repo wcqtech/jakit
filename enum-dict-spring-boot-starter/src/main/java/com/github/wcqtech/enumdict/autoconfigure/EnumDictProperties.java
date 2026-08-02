@@ -8,9 +8,9 @@ import java.util.List;
 /**
  * Configuration for enum dictionary scanning.
  *
- * Prefix: {@code devkit.enum-dict}.
+ * Prefix: {@code jakit.enum-dict}.
  */
-@ConfigurationProperties(prefix = "devkit.enum-dict")
+@ConfigurationProperties(prefix = "jakit.enum-dict")
 public class EnumDictProperties {
 
     private boolean enabled = true;

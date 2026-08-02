@@ -1,8 +1,8 @@
-# devkit
+# jakit
 
 [中文](README.md) | [English](README.en.md)
 
-devkit is a Java development toolkit.
+jakit is a Java development toolkit.
 
 [enum-dict](enum-dict-core/README.en.md) is a data dictionary component: simple and fast, turning enums into data dictionaries.
 

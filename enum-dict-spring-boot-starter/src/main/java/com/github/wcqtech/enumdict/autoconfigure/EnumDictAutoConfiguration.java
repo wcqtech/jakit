@@ -16,7 +16,7 @@ import org.springframework.core.io.ResourceLoader;
  * Auto-configures enum dictionary scanning, registration and query facade.
  */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = "devkit.enum-dict", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "jakit.enum-dict", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(EnumDictProperties.class)
 public class EnumDictAutoConfiguration {
 

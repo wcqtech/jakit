@@ -27,7 +27,7 @@ Add the dependency through JitPack. Spring Boot projects can include the starter
 
 <dependencies>
     <dependency>
-        <groupId>com.github.wcqtech.devkit</groupId>
+        <groupId>com.github.wcqtech.jakit</groupId>
         <artifactId>enum-dict-spring-boot-starter</artifactId>
         <version>${version}</version>
     </dependency>
@@ -40,7 +40,7 @@ If only the registry is needed, include `enum-dict-core`:
 
 ```xml
 <dependency>
-    <groupId>com.github.wcqtech.devkit</groupId>
+    <groupId>com.github.wcqtech.jakit</groupId>
     <artifactId>enum-dict-core</artifactId>
     <version>${version}</version>
 </dependency>
@@ -200,7 +200,7 @@ public class DictController {
 ## Configuration
 
 ```yaml
-devkit:
+jakit:
   enum-dict:
     enabled: true
     base-packages:
@@ -210,8 +210,8 @@ devkit:
 
 | Property | Default | Description |
 | --- | --- | --- |
-| `devkit.enum-dict.enabled` | `true` | Enables or disables the auto-configuration. |
-| `devkit.enum-dict.base-packages` | empty | Packages to scan. Supports multiple values, comma-separated lists, and Ant wildcards. When configured, the default `AutoConfigurationPackages` is not used. |
+| `jakit.enum-dict.enabled` | `true` | Enables or disables the auto-configuration. |
+| `jakit.enum-dict.base-packages` | empty | Packages to scan. Supports multiple values, comma-separated lists, and Ant wildcards. When configured, the default `AutoConfigurationPackages` is not used. |
 
 ## Query API
 

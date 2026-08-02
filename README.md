@@ -1,8 +1,8 @@
-# devkit
+# jakit
 
 [中文](README.md) | [English](README.en.md)
 
-devkit 是一个 Java 开发工具集。
+jakit 是一个 Java 开发工具集。
 
 [enum-dict](enum-dict-core/README.md) 数据字典组件：简单、快捷，让枚举成为数据字典。
 

@@ -32,7 +32,7 @@ enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 
 <dependencies>
     <dependency>
-        <groupId>com.github.wcqtech.devkit</groupId>
+        <groupId>com.github.wcqtech.jakit</groupId>
         <artifactId>enum-dict-spring-boot-starter</artifactId>
         <version>${version}</version>
     </dependency>
@@ -45,7 +45,7 @@ enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 
 ```xml
 <dependency>
-    <groupId>com.github.wcqtech.devkit</groupId>
+    <groupId>com.github.wcqtech.jakit</groupId>
     <artifactId>enum-dict-core</artifactId>
     <version>${version}</version>
 </dependency>
@@ -203,7 +203,7 @@ public class DictController {
 ## 配置
 
 ```yaml
-devkit:
+jakit:
   enum-dict:
     enabled: true
     base-packages:
@@ -213,8 +213,8 @@ devkit:
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `devkit.enum-dict.enabled` | `true` | 是否启用自动装配 |
-| `devkit.enum-dict.base-packages` | 空 | 要扫描的包路径，支持多个值、逗号分隔和 Ant 通配符；配置后不再使用默认的 `AutoConfigurationPackages` |
+| `jakit.enum-dict.enabled` | `true` | 是否启用自动装配 |
+| `jakit.enum-dict.base-packages` | 空 | 要扫描的包路径，支持多个值、逗号分隔和 Ant 通配符；配置后不再使用默认的 `AutoConfigurationPackages` |
 
 ## 查询 API
 
