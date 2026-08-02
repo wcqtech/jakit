@@ -1,0 +1,58 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.github.wcqtech</groupId>
+  <artifactId>devkit</artifactId>
+  <version>2026.08.02</version>
+  <packaging>pom</packaging>
+
+  <name>devkit</name>
+  <description>Java development toolkit published as multi-module Maven artifacts via JitPack.</description>
+  <url>https://github.com/wcqtech/devkit</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>wcqtech</id>
+      <name>wcqtech</name>
+      <url>https://github.com/wcqtech</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/wcqtech/devkit.git</connection>
+    <developerConnection>scm:git:git@github.com:wcqtech/devkit.git</developerConnection>
+    <url>https://github.com/wcqtech/devkit</url>
+  </scm>
+
+  <modules>
+    <module>enum-dict-core</module>
+    <module>enum-dict-spring-boot-starter</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <spring-boot.version>3.2.7</spring-boot.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+</project>
