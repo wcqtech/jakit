@@ -2,6 +2,9 @@
 
 [中文](README.md) | [English](README.en.md)
 
+[![](https://img.shields.io/badge/GitHub-wcqtech/jakit-blue?logo=github)](https://github.com/wcqtech/jakit)
+[![](https://jitpack.io/v/wcqtech/jakit.svg)](https://jitpack.io/#wcqtech/jakit)
+
 jakit is a Java development toolkit.
 
 [enum-dict](enum-dict-core/README.en.md) is a data dictionary component: simple and fast, turning enums into data dictionaries.

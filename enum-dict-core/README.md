@@ -2,6 +2,9 @@
 
 [中文](README.md) | [English](README.en.md)
 
+[![](https://img.shields.io/badge/GitHub-wcqtech/jakit-blue?logo=github)](https://github.com/wcqtech/jakit)
+[![](https://jitpack.io/v/wcqtech/jakit.svg)](https://jitpack.io/#wcqtech/jakit)
+
 enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 
 旨在解决维护数据字典的重复工作和数据不一致性问题。

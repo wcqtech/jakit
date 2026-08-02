@@ -2,6 +2,9 @@
 
 [中文](README.md) | [English](README.en.md)
 
+[![](https://img.shields.io/badge/GitHub-wcqtech/jakit-blue?logo=github)](https://github.com/wcqtech/jakit)
+[![](https://jitpack.io/v/wcqtech/jakit.svg)](https://jitpack.io/#wcqtech/jakit)
+
 `enum-dict` is a component that turns Java enums into static data dictionaries.
 
 It is designed to remove the repetitive work and data inconsistency of maintaining data dictionaries. There are no database tables, no CRUD, and no runtime administration. Business code keeps keys and values inside enums.

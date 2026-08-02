@@ -2,6 +2,9 @@
 
 [中文](README.md) | [English](README.en.md)
 
+[![](https://img.shields.io/badge/GitHub-wcqtech/jakit-blue?logo=github)](https://github.com/wcqtech/jakit)
+[![](https://jitpack.io/v/wcqtech/jakit.svg)](https://jitpack.io/#wcqtech/jakit)
+
 jakit 是一个 Java 开发工具集。
 
 [enum-dict](enum-dict-core/README.md) 数据字典组件：简单、快捷，让枚举成为数据字典。
