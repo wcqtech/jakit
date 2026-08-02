@@ -58,7 +58,7 @@ enum-dict 是一个让 Java 枚举成为静态数据字典的组件。
 方式一：枚举实现 `EnumDictSource`。接口方法返回值为唯一事实来源，`getDictType()` 缺省使用枚举类简单名。
 
 ```java
-import com.github.wcqtech.enumdict.EnumDictSource;
+import com.github.wcqtech.jakit.enumdict.EnumDictSource;
 
 public enum OrderStatus implements EnumDictSource {
 
@@ -88,9 +88,9 @@ public enum OrderStatus implements EnumDictSource {
 方式二：枚举使用注解。`@EnumDict` 标注枚举类，`@DictKey` 和 `@DictValue` 分别标记 key 与展示文本字段。
 
 ```java
-import com.github.wcqtech.enumdict.DictKey;
-import com.github.wcqtech.enumdict.DictValue;
-import com.github.wcqtech.enumdict.EnumDict;
+import com.github.wcqtech.jakit.enumdict.DictKey;
+import com.github.wcqtech.jakit.enumdict.DictValue;
+import com.github.wcqtech.jakit.enumdict.EnumDict;
 
 @EnumDict(type = "pay_channel")
 public enum PayChannel {
@@ -133,7 +133,7 @@ public class Application {
 注入 `EnumDictService`：
 
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictService;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -155,7 +155,7 @@ public class OrderFacade {
 也可以使用 `EnumDictUtils` 静态方法。它由自动装配在扫描完成后安装，只能在 Spring 上下文初始化完成后调用；测试或需要 mock 的场景优先注入 Bean。
 
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 
 String label = EnumDictUtils.getValueByKey("pay_channel", "1").orElse("未知渠道");
 ```
@@ -163,8 +163,8 @@ String label = EnumDictUtils.getValueByKey("pay_channel", "1").orElse("未知渠
 `EnumDictUtils` 还提供与 `EnumDictService` 同名的全量查询静态方法：
 
 ```java
-import com.github.wcqtech.enumdict.DictItem;
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -175,8 +175,8 @@ List<DictItem> allItems = EnumDictUtils.allItems();
 
 ### REST API
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictService;
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -246,8 +246,8 @@ jakit:
 不启动 Spring 时，可以直接使用 `EnumDictRegistry`：
 
 ```java
-import com.github.wcqtech.enumdict.DictItem;
-import com.github.wcqtech.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
 
 import java.util.List;
 import java.util.Map;

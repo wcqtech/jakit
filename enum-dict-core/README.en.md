@@ -53,7 +53,7 @@ If only the registry is needed, include `enum-dict-core`:
 Option 1: implement `EnumDictSource`. The interface methods are the single source of truth, and `getDictType()` defaults to the simple name of the enum class.
 
 ```java
-import com.github.wcqtech.enumdict.EnumDictSource;
+import com.github.wcqtech.jakit.enumdict.EnumDictSource;
 
 public enum OrderStatus implements EnumDictSource {
 
@@ -83,9 +83,9 @@ public enum OrderStatus implements EnumDictSource {
 Option 2: use annotations. `@EnumDict` marks the enum class, while `@DictKey` and `@DictValue` mark the key field and the display text field respectively.
 
 ```java
-import com.github.wcqtech.enumdict.DictKey;
-import com.github.wcqtech.enumdict.DictValue;
-import com.github.wcqtech.enumdict.EnumDict;
+import com.github.wcqtech.jakit.enumdict.DictKey;
+import com.github.wcqtech.jakit.enumdict.DictValue;
+import com.github.wcqtech.jakit.enumdict.EnumDict;
 
 @EnumDict(type = "pay_channel")
 public enum PayChannel {
@@ -128,7 +128,7 @@ public class Application {
 Inject `EnumDictService`:
 
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictService;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -150,7 +150,7 @@ public class OrderFacade {
 Static methods on `EnumDictUtils` are also available. They are installed by the auto-configuration after scanning, so they can only be called after the Spring context has finished initialization; prefer injecting the Bean in tests or when mocking is required.
 
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 
 String label = EnumDictUtils.getValueByKey("pay_channel", "1").orElse("Unknown channel");
 ```
@@ -158,8 +158,8 @@ String label = EnumDictUtils.getValueByKey("pay_channel", "1").orElse("Unknown c
 `EnumDictUtils` also provides full-query static methods with the same names as `EnumDictService`:
 
 ```java
-import com.github.wcqtech.enumdict.DictItem;
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -171,8 +171,8 @@ List<DictItem> allItems = EnumDictUtils.allItems();
 ### REST API
 
 ```java
-import com.github.wcqtech.enumdict.service.EnumDictService;
-import com.github.wcqtech.enumdict.service.EnumDictUtils;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -243,8 +243,8 @@ Rules:
 Without Spring, use `EnumDictRegistry` directly:
 
 ```java
-import com.github.wcqtech.enumdict.DictItem;
-import com.github.wcqtech.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
 
 import java.util.List;
 import java.util.Map;
