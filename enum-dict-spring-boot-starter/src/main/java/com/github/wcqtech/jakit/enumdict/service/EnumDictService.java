@@ -2,10 +2,12 @@ package com.github.wcqtech.jakit.enumdict.service;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Read-only query facade over the enum dictionaries registered at startup.
@@ -129,4 +131,36 @@ public interface EnumDictService {
      * @throws NullPointerException if {@code type} or {@code key} is null
      */
     boolean contains(String type, String key);
+
+    /**
+     * Converts dictionary keys on the fields of the given object into
+     * dictionary values, including nested beans, collections and maps.
+     *
+     * @param target the object to convert
+     * @param <T> the object type
+     * @return the same object instance
+     * @throws NullPointerException if {@code target} is null
+     */
+    <T> T convert(T target);
+
+    /**
+     * Converts every element of the given collection. Null elements are
+     * skipped.
+     *
+     * @param targets the elements to convert
+     * @param <T> the element type
+     * @throws NullPointerException if {@code targets} is null
+     */
+    <T> void convert(Collection<T> targets);
+
+    /**
+     * Converts every element of the given collection, then invokes the visitor
+     * on each converted element.
+     *
+     * @param targets the elements to convert
+     * @param visitor invoked after each element is converted
+     * @param <T> the element type
+     * @throws NullPointerException if {@code targets} or {@code visitor} is null
+     */
+    <T> void convert(Collection<T> targets, Consumer<? super T> visitor);
 }

@@ -2,11 +2,13 @@ package com.github.wcqtech.jakit.enumdict.service;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Static convenience facade over {@link EnumDictService}.
@@ -165,6 +167,41 @@ public final class EnumDictUtils {
      */
     public static boolean contains(String type, String key) {
         return service().contains(type, key);
+    }
+
+    /**
+     * Converts dictionary keys on the fields of the given object into
+     * dictionary values, including nested beans, collections and maps.
+     *
+     * @param target the object to convert
+     * @param <T> the object type
+     * @return the same object instance
+     */
+    public static <T> T convert(T target) {
+        return service().convert(target);
+    }
+
+    /**
+     * Converts every element of the given collection. Null elements are
+     * skipped.
+     *
+     * @param targets the elements to convert
+     * @param <T> the element type
+     */
+    public static <T> void convert(Collection<T> targets) {
+        service().convert(targets);
+    }
+
+    /**
+     * Converts every element of the given collection, then invokes the visitor
+     * on each converted element.
+     *
+     * @param targets the elements to convert
+     * @param visitor invoked after each element is converted
+     * @param <T> the element type
+     */
+    public static <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
+        service().convert(targets, visitor);
     }
 
     private static EnumDictService service() {

@@ -244,6 +244,43 @@ jakit:
 - value 不保证唯一；`itemByValue`、`keyByValue` 返回声明顺序中的首个匹配，`itemsByValue`、`keysByValue` 返回全部匹配。
 - 字典项顺序即枚举声明顺序。
 
+## 字典值转换
+
+把对象中的字典 key 映射为展示文本。在 String 字段上使用 `@DictField`，然后调用 `EnumDictService`、`EnumDictUtils` 或 `EnumDictRegistry` 的 `convert` 方法。支持集合转换，以及对目标对象的附加消费。
+
+```java
+import com.github.wcqtech.jakit.enumdict.convert.DictField;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
+
+public class OrderVO {
+
+    @DictField(type = "order_status")
+    private String status; // convert 后 "1" -> "已支付"
+
+    @DictField(type = "pay_channel", keyField = "channel")
+    private String channelName; // 由 channel 的值填充，channel 保持不变
+
+    private String channel;
+}
+```
+
+```java
+EnumDictUtils.convert(orderVO);
+EnumDictUtils.convert(orders); // 集合转换
+EnumDictUtils.convert(orders, order -> {
+    count.incrementAndGet(); // 对目标对象额外消费
+});
+```
+
+规则：
+
+- 标注字段必须是 String；`keyField` 缺省时使用标注字段自身作为字典 key 并原地覆盖，显式声明为自身字段名时行为相同。
+- `keyField` 指向兄弟字段时，读取该字段的值，把展示文本写入标注字段。
+- 嵌套的可转换 bean、`Collection`、`Map` 与对象数组会递归处理，按运行时实际类型判断，raw 或通配符泛型同样适用，基本类型数组跳过。
+- 未命中字典时默认保留原值；`EnumDictConverter(registry, MissingPolicy.FAIL)` 会改为抛异常。
+- Record、final 字段和 JDK 值类型不会被写入。
+- 若 Map 的 key 是会被转换的 bean，业务方必须保证 key 的 `hashCode`/`equals` 不依赖被转换字段；转换后 SDK 不会重建 Map 桶结构，需要重建时由业务方自行处理。
+
 ## 独立使用 core
 
 不启动 Spring 时，可以直接使用 `EnumDictRegistry`：

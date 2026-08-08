@@ -2,6 +2,7 @@ package com.github.wcqtech.jakit.enumdict.service;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.convert.DictField;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -69,5 +70,22 @@ class EnumDictServiceTest {
         assertEquals(2, service.itemsByType().size());
         assertEquals("Pending", service.itemsByType().get("order_status").get(0).value());
         assertEquals(2, service.allItems().size());
+    }
+
+    @Test
+    void convertsDictionaryFieldsThroughService() {
+        EnumDictRegistry registry = new EnumDictRegistry();
+        registry.register("order_status", List.of(new DictItem("order_status", "1", "Paid")));
+        EnumDictService service = new DefaultEnumDictService(registry);
+
+        Order order = new Order();
+        service.convert(order);
+
+        assertEquals("Paid", order.status);
+    }
+
+    static class Order {
+        @DictField(type = "order_status")
+        String status = "1";
     }
 }

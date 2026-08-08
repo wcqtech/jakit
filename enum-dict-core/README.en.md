@@ -241,6 +241,43 @@ Rules:
 - Values are not guaranteed to be unique. `itemByValue` and `keyByValue` return the first match in declaration order; `itemsByValue` and `keysByValue` return all matches.
 - Dictionary item order is the enum declaration order.
 
+## Dictionary Value Conversion
+
+Maps dictionary keys on objects to display text. Annotate a `String` field with `@DictField`, then call `convert` on `EnumDictService`, `EnumDictUtils`, or `EnumDictRegistry`. Collection conversion and an additional consumer for each target object are also supported.
+
+```java
+import com.github.wcqtech.jakit.enumdict.convert.DictField;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
+
+public class OrderVO {
+
+    @DictField(type = "order_status")
+    private String status; // after convert: "1" -> "Paid"
+
+    @DictField(type = "pay_channel", keyField = "channel")
+    private String channelName; // filled from channel; channel stays unchanged
+
+    private String channel;
+}
+```
+
+```java
+EnumDictUtils.convert(orderVO);
+EnumDictUtils.convert(orders); // collection conversion
+EnumDictUtils.convert(orders, order -> {
+    count.incrementAndGet(); // extra consumer for each target object
+});
+```
+
+Rules:
+
+- The annotated field must be a `String`. When `keyField` is blank, the annotated field itself is the key source and is overwritten in place; explicitly naming the annotated field has the same behavior.
+- When `keyField` names a sibling field, the value of that field is read and the display text is written to the annotated field.
+- Nested convertible beans, `Collection`, `Map`, and object arrays are processed recursively by runtime type; raw and wildcard generic fields are also supported, while primitive arrays are skipped.
+- When a key is missing, the original value is kept by default; `EnumDictConverter(registry, MissingPolicy.FAIL)` switches to throwing.
+- Records, final fields, and JDK value types are never written.
+- If a Map key is a bean that gets converted, business code must keep the key's `hashCode`/`equals` independent of converted fields. The SDK does not rebuild the Map buckets after conversion; rebuild them yourself when needed.
+
 ## Standalone Core Usage
 
 Without Spring, use `EnumDictRegistry` directly:

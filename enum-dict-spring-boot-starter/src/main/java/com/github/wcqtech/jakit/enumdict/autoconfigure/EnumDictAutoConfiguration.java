@@ -1,6 +1,7 @@
 package com.github.wcqtech.jakit.enumdict.autoconfigure;
 
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
 import com.github.wcqtech.jakit.enumdict.scanner.EnumDictScanner;
 import com.github.wcqtech.jakit.enumdict.service.DefaultEnumDictService;
 import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
@@ -36,6 +37,12 @@ public class EnumDictAutoConfiguration {
     @ConditionalOnMissingBean
     public EnumDictService enumDictService(EnumDictRegistry registry) {
         return new DefaultEnumDictService(registry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EnumDictConverter enumDictConverter(EnumDictRegistry registry) {
+        return new EnumDictConverter(registry);
     }
 
     @Bean

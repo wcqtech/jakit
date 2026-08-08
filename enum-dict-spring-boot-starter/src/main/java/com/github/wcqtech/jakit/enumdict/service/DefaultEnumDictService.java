@@ -3,11 +3,13 @@ package com.github.wcqtech.jakit.enumdict.service;
 import com.github.wcqtech.jakit.enumdict.DictItem;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Default {@link EnumDictService} delegating to {@link EnumDictRegistry}.
@@ -98,5 +100,20 @@ public class DefaultEnumDictService implements EnumDictService {
         Objects.requireNonNull(type, "type must not be null");
         Objects.requireNonNull(key, "key must not be null");
         return registry.contains(type, key);
+    }
+
+    @Override
+    public <T> T convert(T target) {
+        return registry.convert(target);
+    }
+
+    @Override
+    public <T> void convert(Collection<T> targets) {
+        registry.convert(targets);
+    }
+
+    @Override
+    public <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
+        registry.convert(targets, visitor);
     }
 }
