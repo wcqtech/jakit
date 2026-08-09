@@ -216,6 +216,7 @@ jakit:
 | `jakit.enum-dict.enabled` | `true` | Enables or disables the auto-configuration. |
 | `jakit.enum-dict.base-packages` | empty | Packages to scan. Supports multiple values, comma-separated lists, and Ant wildcards. When configured, the default `AutoConfigurationPackages` is not used. |
 | `jakit.enum-dict.convert.missing-policy` | `IGNORE` | Policy applied when a dictionary key is missing: `IGNORE` keeps the original value, `FAIL` throws. |
+| `jakit.enum-dict.i18n.missing-policy` | `IGNORE` | Policy applied when a translation is missing: `IGNORE` falls back to the literal label, `FAIL` throws. |
 
 ## Query API
 
@@ -279,6 +280,59 @@ Rules:
 - Records, final fields, and JDK value types are never written.
 - If a Map key is a bean that gets converted, business code must keep the key's `hashCode`/`equals` independent of converted fields. The SDK does not rebuild the Map buckets after conversion; rebuild them yourself when needed.
 
+## Internationalization (i18n)
+
+Display labels are resolved per `Locale` through Spring's standard `MessageSource`.
+
+### Declaring an i18n key
+
+Implement `getDictI18nKey()` for the interface style, or mark a field with `@DictI18n` for the annotation style. When no key is declared, the message key convention `{type}.{key}` is used.
+
+```java
+@EnumDict(type = "order_status")
+public enum OrderStatus {
+
+    PENDING(0, "Pending", "order.status.pending"),
+    PAID(1, "Paid", "order.status.paid");
+
+    @DictKey
+    private final int code;
+
+    @DictValue
+    private final String label;
+
+    @DictI18n
+    private final String i18nKey;
+
+    OrderStatus(int code, String label, String i18nKey) {
+        this.code = code;
+        this.label = label;
+        this.i18nKey = i18nKey;
+    }
+}
+```
+
+```properties
+# src/main/resources/messages.properties
+order.status.pending=Pending
+order.status.paid=Paid
+```
+
+### Locale-aware queries
+
+`EnumDictService` and `EnumDictUtils` provide `Locale` overloads for every query method and for `convert`. Without an explicit locale, `LocaleContextHolder` is used (`Locale.getDefault()` in non-web scenarios). Locale-aware queries return `DictItem` copies with translated labels; reverse lookups match against translated text.
+
+```java
+enumDictService.valueByKey("order_status", "1", Locale.ENGLISH); // Pending
+EnumDictUtils.convert(orderVO, Locale.ENGLISH);
+```
+
+### Missing translation policy
+
+`jakit.enum-dict.i18n.missing-policy` defaults to `IGNORE`, falling back to the literal label; with `FAIL` an `EnumDictI18nException` is thrown. For local switches, construct `MessageSourceDictValueResolver(messageSource, MissingPolicy.FAIL)` or `ResourceBundleDictValueResolver(baseName, MissingPolicy.FAIL)` directly.
+
+`MessageSource` and `LocaleResolver` are provided by the business application or Spring Boot auto-configuration; the SDK only consumes them. When no `MessageSource` bean exists, locale-aware queries fall back to literal labels. For core-only usage, use `ResourceBundleDictValueResolver` or a custom `DictValueResolver` implementation.
+
 ## Standalone Core Usage
 
 Without Spring, use `EnumDictRegistry` and `EnumDictConverter` directly:
@@ -305,11 +359,11 @@ public class OrderVO {
     @DictField(type = "OrderStatus")
     String status;
 }
-
-EnumDictConverter converter = new EnumDictConverter(registry);
-converter.convert(orderVO); // status: "1" -> "Paid"
+DictValueResolver resolver = new ResourceBundleDictValueResolver("messages");
+EnumDictConverter converter = new EnumDictConverter(registry, resolver);
+converter.convert(orderVO, Locale.CHINESE); // status: "1" -> "已支付"
 ```
-Conversion is performed by the `EnumDictConverter`.
+Conversion is performed by the `EnumDictConverter`, and internationalization is performed by the `DictValueResolver`.
 
 ## Validation Rules
 
@@ -317,6 +371,7 @@ The following cases fail fast at startup with explicit error messages:
 
 - `@EnumDict` is placed on a non-enum class.
 - An annotation-based enum is missing `@DictKey` or `@DictValue`, or has the same annotation more than once.
+- `@DictI18n` is declared more than once.
 - Constants implementing `EnumDictSource` return inconsistent `getDictType()` values.
 - The type is `null` or blank (interface mode).
 - A key is `null` or blank.
@@ -328,6 +383,7 @@ The following cases fail fast at startup with explicit error messages:
 
 - Startup scanning: scans the package containing `@SpringBootApplication` by default; multiple packages and Ant wildcards can be configured.
 - Two declaration modes: implement `EnumDictSource`, or use `@EnumDict`, `@DictKey`, and `@DictValue`.
+- Internationalization: `Locale`-aware queries and conversion based on Spring's `MessageSource`, with `IGNORE`/`FAIL` missing policies.
 - Read-only queries: provides the `EnumDictService` Bean and the `EnumDictUtils` static utility class.
 - Strict validation: type, key, annotation completeness, and other problems fail fast at startup.
 - Low dependency: `enum-dict-core` has zero Spring dependencies and can be used in plain Java projects.

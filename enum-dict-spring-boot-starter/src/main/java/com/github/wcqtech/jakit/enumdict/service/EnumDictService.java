@@ -4,6 +4,7 @@ import com.github.wcqtech.jakit.enumdict.DictItem;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -16,8 +17,10 @@ import java.util.function.Consumer;
  * guaranteed to be unique. Reverse lookups by value therefore provide both
  * all-matches and first-match methods.
  *
- * All query parameters are required; passing {@code null} throws
- * {@link NullPointerException}.
+ * Query parameters except locale are required; passing {@code null} for type,
+ * key or value throws {@link NullPointerException}. A {@code null} locale
+ * resolves to the current {@code LocaleContextHolder} locale, or to
+ * {@link Locale#getDefault()} when no context is available.
  */
 public interface EnumDictService {
 
@@ -163,4 +166,177 @@ public interface EnumDictService {
      * @throws NullPointerException if {@code targets} or {@code visitor} is null
      */
     <T> void convert(Collection<T> targets, Consumer<? super T> visitor);
+
+    /**
+     * Returns all dictionary items of the given type in declaration order,
+     * with display labels resolved for the given locale.
+     *
+     * @param type the dictionary type
+     * @param locale the target locale
+     * @return an unmodifiable list of localized items; empty when the type is not registered
+     * @throws NullPointerException if {@code type} is null
+     */
+    default List<DictItem> items(String type, Locale locale) {
+        return items(type);
+    }
+
+    /**
+     * Returns the localized dictionary item identified by the given key.
+     *
+     * @param type the dictionary type
+     * @param key the normalized dictionary key
+     * @param locale the target locale
+     * @return the matching localized item, or empty when the type or key is not registered
+     * @throws NullPointerException if {@code type} or {@code key} is null
+     */
+    default Optional<DictItem> itemByKey(String type, String key, Locale locale) {
+        return itemByKey(type, key);
+    }
+
+    /**
+     * Returns all localized dictionary items whose display label matches.
+     *
+     * @param type the dictionary type
+     * @param value the localized display label
+     * @param locale the target locale
+     * @return an unmodifiable list of matching items
+     * @throws NullPointerException if {@code type} or {@code value} is null
+     */
+    default List<DictItem> itemsByValue(String type, String value, Locale locale) {
+        return itemsByValue(type, value);
+    }
+
+    /**
+     * Returns the first localized dictionary item whose display label matches.
+     *
+     * @param type the dictionary type
+     * @param value the localized display label
+     * @param locale the target locale
+     * @return the first matching item, or empty when there is no match
+     * @throws NullPointerException if {@code type} or {@code value} is null
+     */
+    default Optional<DictItem> itemByValue(String type, String value, Locale locale) {
+        return itemByValue(type, value);
+    }
+
+    /**
+     * Returns the localized display label for the given key.
+     *
+     * @param type the dictionary type
+     * @param key the normalized dictionary key
+     * @param locale the target locale
+     * @return the localized value, or empty when the type or key is not registered
+     * @throws NullPointerException if {@code type} or {@code key} is null
+     */
+    default Optional<String> valueByKey(String type, String key, Locale locale) {
+        return valueByKey(type, key);
+    }
+
+    /**
+     * Returns all dictionary keys whose localized display label matches.
+     *
+     * @param type the dictionary type
+     * @param value the localized display label
+     * @param locale the target locale
+     * @return an unmodifiable list of matching keys
+     * @throws NullPointerException if {@code type} or {@code value} is null
+     */
+    default List<String> keysByValue(String type, String value, Locale locale) {
+        return keysByValue(type, value);
+    }
+
+    /**
+     * Returns the first dictionary key whose localized display label matches.
+     *
+     * @param type the dictionary type
+     * @param value the localized display label
+     * @param locale the target locale
+     * @return the first matching key, or empty when there is no match
+     * @throws NullPointerException if {@code type} or {@code value} is null
+     */
+    default Optional<String> keyByValue(String type, String value, Locale locale) {
+        return keyByValue(type, value);
+    }
+
+    /**
+     * Returns all dictionary items of the given type keyed by their key, with
+     * display labels resolved for the given locale.
+     *
+     * @param type the dictionary type
+     * @param locale the target locale
+     * @return an unmodifiable map; empty when the type is not registered
+     * @throws NullPointerException if {@code type} is null
+     */
+    default Map<String, DictItem> itemMap(String type, Locale locale) {
+        return itemMap(type);
+    }
+
+    /**
+     * Returns all dictionary items grouped by type, with display labels
+     * resolved for the given locale.
+     *
+     * @param locale the target locale
+     * @return an unmodifiable map of type to localized items
+     */
+    default Map<String, List<DictItem>> itemsByType(Locale locale) {
+        return itemsByType();
+    }
+
+    /**
+     * Returns all dictionary items as a flat list, with display labels
+     * resolved for the given locale.
+     *
+     * @param locale the target locale
+     * @return an unmodifiable list of localized items
+     */
+    default List<DictItem> allItems(Locale locale) {
+        return allItems();
+    }
+
+    /**
+     * Converts dictionary keys on the fields of the given object into
+     * localized display labels.
+     *
+     * @param target the object to convert
+     * @param locale the target locale
+     * @param <T> the object type
+     * @return the same object instance
+     * @throws NullPointerException if {@code target} is null
+     */
+    default <T> T convert(T target, Locale locale) {
+        return convert(target);
+    }
+
+    /**
+     * Converts every element of the given collection into localized display
+     * labels.
+     *
+     * Note: this overload and {@code convert(Collection, Consumer)} share the
+     * same first parameter type, so passing a bare {@code null} as the second
+     * argument is ambiguous and will not compile. Pass an explicitly typed
+     * {@link Locale} or {@link Consumer}, or use the single-argument
+     * {@code convert(Collection)} when neither is needed.
+     *
+     * @param targets the elements to convert
+     * @param locale the target locale
+     * @param <T> the element type
+     * @throws NullPointerException if {@code targets} is null
+     */
+    default <T> void convert(Collection<T> targets, Locale locale) {
+        convert(targets);
+    }
+
+    /**
+     * Converts every element of the given collection into localized display
+     * labels, then invokes the visitor on each converted element.
+     *
+     * @param targets the elements to convert
+     * @param visitor invoked after each element is converted
+     * @param locale the target locale
+     * @param <T> the element type
+     * @throws NullPointerException if {@code targets} or {@code visitor} is null
+     */
+    default <T> void convert(Collection<T> targets, Consumer<? super T> visitor, Locale locale) {
+        convert(targets, visitor);
+    }
 }

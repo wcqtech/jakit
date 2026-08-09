@@ -4,6 +4,7 @@ import com.github.wcqtech.jakit.enumdict.DictItem;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,7 +23,9 @@ import java.util.function.Consumer;
  * required.
  *
  * Query parameters follow the same contract as {@link EnumDictService}:
- * passing {@code null} throws {@link NullPointerException}.
+ * passing {@code null} for type, key or value throws
+ * {@link NullPointerException}; a {@code null} locale resolves the current
+ * locale.
  */
 public final class EnumDictUtils {
 
@@ -202,6 +205,110 @@ public final class EnumDictUtils {
      */
     public static <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
         service().convert(targets, visitor);
+    }
+
+    /**
+     * Returns all dictionary items of the given type in declaration order,
+     * with display labels resolved for the given locale.
+     */
+    public static List<DictItem> items(String type, Locale locale) {
+        return service().items(type, locale);
+    }
+
+    /**
+     * Returns the localized dictionary item identified by the given key.
+     */
+    public static Optional<DictItem> getItemByKey(String type, String key, Locale locale) {
+        return service().itemByKey(type, key, locale);
+    }
+
+    /**
+     * Returns all localized dictionary items whose display label matches.
+     */
+    public static List<DictItem> getItemsByValue(String type, String value, Locale locale) {
+        return service().itemsByValue(type, value, locale);
+    }
+
+    /**
+     * Returns the first localized dictionary item whose display label matches.
+     */
+    public static Optional<DictItem> getItemByValue(String type, String value, Locale locale) {
+        return service().itemByValue(type, value, locale);
+    }
+
+    /**
+     * Returns the localized display label for the given key.
+     */
+    public static Optional<String> getValueByKey(String type, String key, Locale locale) {
+        return service().valueByKey(type, key, locale);
+    }
+
+    /**
+     * Returns all dictionary keys whose localized display label matches.
+     */
+    public static List<String> getKeysByValue(String type, String value, Locale locale) {
+        return service().keysByValue(type, value, locale);
+    }
+
+    /**
+     * Returns the first dictionary key whose localized display label matches.
+     */
+    public static Optional<String> getKeyByValue(String type, String value, Locale locale) {
+        return service().keyByValue(type, value, locale);
+    }
+
+    /**
+     * Returns all dictionary items of the given type keyed by their key, with
+     * display labels resolved for the given locale.
+     */
+    public static Map<String, DictItem> itemMap(String type, Locale locale) {
+        return service().itemMap(type, locale);
+    }
+
+    /**
+     * Returns all dictionary items grouped by type, with display labels
+     * resolved for the given locale.
+     */
+    public static Map<String, List<DictItem>> itemsByType(Locale locale) {
+        return service().itemsByType(locale);
+    }
+
+    /**
+     * Returns all dictionary items as a flat list, with display labels
+     * resolved for the given locale.
+     */
+    public static List<DictItem> allItems(Locale locale) {
+        return service().allItems(locale);
+    }
+
+    /**
+     * Converts dictionary keys on the fields of the given object into
+     * localized display labels.
+     */
+    public static <T> T convert(T target, Locale locale) {
+        return service().convert(target, locale);
+    }
+
+    /**
+     * Converts every element of the given collection into localized display
+     * labels.
+     *
+     * Note: this overload and {@code convert(Collection, Consumer)} share the
+     * same first parameter type, so passing a bare {@code null} as the second
+     * argument is ambiguous and will not compile. Pass an explicitly typed
+     * {@link Locale} or {@link Consumer}, or use the single-argument
+     * {@code convert(Collection)} when neither is needed.
+     */
+    public static <T> void convert(Collection<T> targets, Locale locale) {
+        service().convert(targets, locale);
+    }
+
+    /**
+     * Converts every element of the given collection into localized display
+     * labels, then invokes the visitor on each converted element.
+     */
+    public static <T> void convert(Collection<T> targets, Consumer<? super T> visitor, Locale locale) {
+        service().convert(targets, visitor, locale);
     }
 
     private static EnumDictService service() {

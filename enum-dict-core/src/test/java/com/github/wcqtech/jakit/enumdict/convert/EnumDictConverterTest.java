@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -301,7 +302,8 @@ class EnumDictConverterTest {
     void rejectsNullArguments() {
         assertThrows(NullPointerException.class, () -> converter.convert((Object) null));
         assertThrows(NullPointerException.class, () -> converter.convert((Collection<Order>) null));
-        assertThrows(NullPointerException.class, () -> converter.convert(List.of(new Order()), null));
+        assertThrows(NullPointerException.class,
+                () -> converter.convert(List.of(new Order()), (Consumer<? super Order>) null));
     }
 
     @Test
