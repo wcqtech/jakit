@@ -215,6 +215,7 @@ jakit:
 | --- | --- | --- |
 | `jakit.enum-dict.enabled` | `true` | Enables or disables the auto-configuration. |
 | `jakit.enum-dict.base-packages` | empty | Packages to scan. Supports multiple values, comma-separated lists, and Ant wildcards. When configured, the default `AutoConfigurationPackages` is not used. |
+| `jakit.enum-dict.convert.missing-policy` | `IGNORE` | Policy applied when a dictionary key is missing: `IGNORE` keeps the original value, `FAIL` throws. |
 
 ## Query API
 
@@ -274,7 +275,7 @@ Rules:
 - The annotated field must be a `String`. When `keyField` is blank, the annotated field itself is the key source and is overwritten in place; explicitly naming the annotated field has the same behavior.
 - When `keyField` names a sibling field, the value of that field is read and the display text is written to the annotated field.
 - Nested convertible beans, `Collection`, `Map`, and object arrays are processed recursively by runtime type; raw and wildcard generic fields are also supported, while primitive arrays are skipped.
-- When a key is missing, the original value is kept by default; `EnumDictConverter(registry, MissingPolicy.FAIL)` switches to throwing.
+- When a key is missing, the original value is kept by default; switch globally with `jakit.enum-dict.convert.missing-policy: FAIL`, or locally with `EnumDictConverter(registry, MissingPolicy.FAIL)`.
 - Records, final fields, and JDK value types are never written.
 - If a Map key is a bean that gets converted, business code must keep the key's `hashCode`/`equals` independent of converted fields. The SDK does not rebuild the Map buckets after conversion; rebuild them yourself when needed.
 

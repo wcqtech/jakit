@@ -1,6 +1,7 @@
 package com.github.wcqtech.jakit.enumdict;
 
 import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
+import com.github.wcqtech.jakit.enumdict.convert.MissingPolicy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,7 +23,24 @@ import java.util.function.Consumer;
 public final class EnumDictRegistry {
 
     private final Map<String, List<DictItem>> itemsByType = new ConcurrentHashMap<>();
-    private final EnumDictConverter converter = new EnumDictConverter(this);
+    private final EnumDictConverter converter;
+
+    /**
+     * Creates a registry whose convert methods use {@link MissingPolicy#IGNORE}.
+     */
+    public EnumDictRegistry() {
+        this(MissingPolicy.IGNORE);
+    }
+
+    /**
+     * Creates a registry whose convert methods use the given missing policy.
+     *
+     * @param missingPolicy the policy applied when a dictionary key is missing
+     */
+    public EnumDictRegistry(MissingPolicy missingPolicy) {
+        this.converter = new EnumDictConverter(this,
+                Objects.requireNonNull(missingPolicy, "missingPolicy must not be null"));
+    }
 
     public void register(String type, List<DictItem> items) {
         Objects.requireNonNull(type, "type must not be null");

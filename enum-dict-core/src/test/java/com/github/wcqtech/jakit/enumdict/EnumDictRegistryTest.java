@@ -1,5 +1,7 @@
 package com.github.wcqtech.jakit.enumdict;
 
+import com.github.wcqtech.jakit.enumdict.convert.DictField;
+import com.github.wcqtech.jakit.enumdict.convert.MissingPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -34,5 +36,20 @@ class EnumDictRegistryTest {
 
         assertEquals(2, all.size());
         assertThrows(UnsupportedOperationException.class, () -> all.add(null));
+    }
+
+    @Test
+    void convertsWithConfiguredMissingPolicy() {
+        EnumDictRegistry registry = new EnumDictRegistry(MissingPolicy.FAIL);
+        registry.register("order_status", List.of(new DictItem("order_status", "1", "Paid")));
+
+        MissingKeyBean bean = new MissingKeyBean();
+
+        assertThrows(IllegalStateException.class, () -> registry.convert(bean));
+    }
+
+    static class MissingKeyBean {
+        @DictField(type = "order_status")
+        String status = "999";
     }
 }
