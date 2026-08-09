@@ -1,6 +1,7 @@
 package com.github.wcqtech.jakit.enumdict.scanner;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.DictI18n;
 import com.github.wcqtech.jakit.enumdict.DictKey;
 import com.github.wcqtech.jakit.enumdict.DictValue;
 import com.github.wcqtech.jakit.enumdict.EnumDict;
@@ -105,7 +106,8 @@ public final class EnumDictScanner {
             if (value == null) {
                 throw new IllegalStateException("Null dictionary value in " + enumType.getName() + "." + constant.name());
             }
-            items.add(new DictItem(type, String.valueOf(key), String.valueOf(value)));
+            items.add(new DictItem(type, String.valueOf(key), String.valueOf(value),
+                    source.getDictI18nKey()));
         }
         return type;
     }
@@ -118,6 +120,7 @@ public final class EnumDictScanner {
         String type = annotation.type().isBlank() ? enumType.getSimpleName() : annotation.type();
         Field keyField = findAnnotatedField(enumType, DictKey.class);
         Field valueField = findAnnotatedField(enumType, DictValue.class);
+        Field i18nField = findAnnotatedField(enumType, DictI18n.class);
         if (keyField == null) {
             throw new IllegalStateException("Missing @" + DictKey.class.getSimpleName() + " on " + enumType.getName());
         }
@@ -126,6 +129,9 @@ public final class EnumDictScanner {
         }
         keyField.setAccessible(true);
         valueField.setAccessible(true);
+        if (i18nField != null) {
+            i18nField.setAccessible(true);
+        }
         for (Enum<?> constant : constants) {
             Object key = readField(enumType, constant, keyField);
             if (key == null) {
@@ -135,7 +141,9 @@ public final class EnumDictScanner {
             if (value == null) {
                 throw new IllegalStateException("Null dictionary value in " + enumType.getName() + "." + constant.name());
             }
-            items.add(new DictItem(type, String.valueOf(key), String.valueOf(value)));
+            Object i18nKey = i18nField == null ? null : readField(enumType, constant, i18nField);
+            items.add(new DictItem(type, String.valueOf(key), String.valueOf(value),
+                    i18nKey == null ? null : String.valueOf(i18nKey)));
         }
         return type;
     }

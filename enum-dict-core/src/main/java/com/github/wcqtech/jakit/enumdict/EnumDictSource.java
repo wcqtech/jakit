@@ -22,4 +22,13 @@ public interface EnumDictSource {
     Object getDictKey();
 
     Object getDictValue();
+
+    /**
+     * Returns the i18n message key used to resolve the localized display
+     * label. A blank value means the dictionary item has no explicit message
+     * key; resolvers then fall back to the convention {@code {type}.{key}}.
+     */
+    default String getDictI18nKey() {
+        return "";
+    }
 }

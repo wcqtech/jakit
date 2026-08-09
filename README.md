@@ -14,7 +14,7 @@ jakit 是一个 Java 开发工具集。
 
 | 模块 | 说明 |
 | --- | --- |
-| `enum-dict-core` | 注解、`EnumDictSource` 接口、`DictItem` 与 `EnumDictRegistry`。零 Spring 依赖，可独立用于普通 Java 项目。 |
+| `enum-dict-core` | 注解、`EnumDictSource` 接口、`DictItem`、`EnumDictRegistry` 与 `EnumDictConverter`。零 Spring 依赖，可独立用于普通 Java 项目。 |
 | `enum-dict-spring-boot-starter` | Spring Boot 3 自动装配，扫描业务包中的枚举字典、注册到内存，并提供 `EnumDictService` 与 `EnumDictUtils`。 |
 
 
