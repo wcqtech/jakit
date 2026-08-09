@@ -2,6 +2,8 @@ package com.github.wcqtech.jakit.enumdict.service;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.convert.DictField;
+import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,7 +20,7 @@ class EnumDictServiceTest {
     void delegatesReadQueriesToRegistry() {
         EnumDictRegistry registry = new EnumDictRegistry();
         registry.register("order_status", List.of(new DictItem("order_status", "1", "Paid")));
-        EnumDictService service = new DefaultEnumDictService(registry);
+        EnumDictService service = service(registry);
 
         assertTrue(service.contains("order_status", "1"));
         assertEquals("Paid", service.itemByKey("order_status", "1").orElseThrow().value());
@@ -34,7 +36,7 @@ class EnumDictServiceTest {
                 new DictItem("order_status", "1", "Pending"),
                 new DictItem("order_status", "2", "Paid"),
                 new DictItem("order_status", "3", "Paid")));
-        EnumDictService service = new DefaultEnumDictService(registry);
+        EnumDictService service = service(registry);
 
         assertEquals(List.of("2", "3"), service.keysByValue("order_status", "Paid"));
         assertEquals(Optional.of("2"), service.keyByValue("order_status", "Paid"));
@@ -45,7 +47,7 @@ class EnumDictServiceTest {
 
     @Test
     void rejectsNullArguments() {
-        EnumDictService service = new DefaultEnumDictService(new EnumDictRegistry());
+        EnumDictService service = service(new EnumDictRegistry());
 
         assertThrows(NullPointerException.class, () -> service.items(null));
         assertThrows(NullPointerException.class, () -> service.itemByKey(null, "1"));
@@ -64,10 +66,31 @@ class EnumDictServiceTest {
         EnumDictRegistry registry = new EnumDictRegistry();
         registry.register("order_status", List.of(new DictItem("order_status", "1", "Pending")));
         registry.register("pay_channel", List.of(new DictItem("pay_channel", "1", "WeChat")));
-        EnumDictService service = new DefaultEnumDictService(registry);
+        EnumDictService service = service(registry);
 
         assertEquals(2, service.itemsByType().size());
         assertEquals("Pending", service.itemsByType().get("order_status").get(0).value());
         assertEquals(2, service.allItems().size());
+    }
+
+    @Test
+    void convertsDictionaryFieldsThroughService() {
+        EnumDictRegistry registry = new EnumDictRegistry();
+        registry.register("order_status", List.of(new DictItem("order_status", "1", "Paid")));
+        EnumDictService service = service(registry);
+
+        Order order = new Order();
+        service.convert(order);
+
+        assertEquals("Paid", order.status);
+    }
+
+    static class Order {
+        @DictField(type = "order_status")
+        String status = "1";
+    }
+
+    private static EnumDictService service(EnumDictRegistry registry) {
+        return new DefaultEnumDictService(registry, new EnumDictConverter(registry));
     }
 }

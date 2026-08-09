@@ -35,4 +35,5 @@ class EnumDictRegistryTest {
         assertEquals(2, all.size());
         assertThrows(UnsupportedOperationException.class, () -> all.add(null));
     }
+
 }

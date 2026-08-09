@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -94,5 +95,22 @@ class EnumDictScannerTest {
 
         Throwable cause = ex.getCause();
         assertTrue(cause != null && cause.getMessage().contains("Duplicate dictionary type"));
+    }
+
+    @Test
+    void scansI18nKeysFromAnnotationsAndInterface() {
+        scanner.scan("com.github.wcqtech.jakit.enumdict.scanner.fixture.i18n");
+
+        assertEquals("i18n.status.pending", registry.get("i18n_status", "0").orElseThrow().i18nKey());
+        assertNull(registry.get("i18n_status", "1").orElseThrow().i18nKey());
+        assertEquals("i18n.interface.alpha", registry.get("TestI18nInterface", "1").orElseThrow().i18nKey());
+    }
+
+    @Test
+    void failsWhenMultipleI18nFieldsDeclared() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> scanner.scan("com.github.wcqtech.jakit.enumdict.scanner.fixture.invalid.duplicatei18n"));
+
+        assertTrue(ex.getMessage().contains("DictI18n"));
     }
 }
