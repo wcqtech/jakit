@@ -69,6 +69,8 @@ public final class EnumDictConverter {
      * @param <T> the object type
      * @return the same object instance
      * @throws NullPointerException if {@code target} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> T convert(T target) {
         Objects.requireNonNull(target, "target must not be null");
@@ -86,6 +88,8 @@ public final class EnumDictConverter {
      * @param <T> the object type
      * @return the same object instance
      * @throws NullPointerException if {@code target} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> T convert(T target, Locale locale) {
         Objects.requireNonNull(target, "target must not be null");
@@ -100,6 +104,8 @@ public final class EnumDictConverter {
      * @param targets the elements to convert
      * @param <T> the element type
      * @throws NullPointerException if {@code targets} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> void convert(Collection<T> targets) {
         Objects.requireNonNull(targets, "targets must not be null");
@@ -126,6 +132,8 @@ public final class EnumDictConverter {
      *        {@link Locale#getDefault()}
      * @param <T> the element type
      * @throws NullPointerException if {@code targets} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> void convert(Collection<T> targets, Locale locale) {
         Objects.requireNonNull(targets, "targets must not be null");
@@ -147,6 +155,8 @@ public final class EnumDictConverter {
      * @param visitor invoked after each element is converted
      * @param <T> the element type
      * @throws NullPointerException if {@code targets} or {@code visitor} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
         Objects.requireNonNull(targets, "targets must not be null");
@@ -171,6 +181,8 @@ public final class EnumDictConverter {
      *        {@link Locale#getDefault()}
      * @param <T> the element type
      * @throws NullPointerException if {@code targets} or {@code visitor} is null
+     * @throws EnumDictConvertException when the missing policy is
+     *         {@code FAIL} and a dictionary key is not found
      */
     public <T> void convert(Collection<T> targets, Consumer<? super T> visitor, Locale locale) {
         Objects.requireNonNull(targets, "targets must not be null");
@@ -235,7 +247,7 @@ public final class EnumDictConverter {
         Optional<DictItem> item = registry.get(dictField.type, key);
         if (item.isEmpty()) {
             if (missingPolicy == MissingPolicy.FAIL) {
-                throw new IllegalStateException("No dictionary item found for type '" + dictField.type
+                throw new EnumDictConvertException("No dictionary item found for type '" + dictField.type
                         + "', key '" + key + "' while converting "
                         + bean.getClass().getName() + "." + dictField.field.getName());
             }

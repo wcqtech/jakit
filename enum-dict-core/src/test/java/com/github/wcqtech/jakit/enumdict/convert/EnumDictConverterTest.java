@@ -237,7 +237,7 @@ class EnumDictConverterTest {
         Order order = new Order();
         order.status = "999";
 
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> failing.convert(order));
+        EnumDictConvertException error = assertThrows(EnumDictConvertException.class, () -> failing.convert(order));
 
         assertTrue(error.getMessage().contains("order_status"));
         assertTrue(error.getMessage().contains("999"));

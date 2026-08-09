@@ -3,6 +3,7 @@ package com.github.wcqtech.jakit.enumdict.autoconfigure;
 import com.github.wcqtech.jakit.enumdict.autoconfigure.testapp.TestApplication;
 import com.github.wcqtech.jakit.enumdict.convert.DictField;
 import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
+import com.github.wcqtech.jakit.enumdict.convert.EnumDictConvertException;
 import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
 import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 import org.junit.jupiter.api.Test;
@@ -23,13 +24,13 @@ class EnumDictConvertMissingPolicyTest {
 
     @Test
     void appliesConfiguredMissingPolicyToConverter() {
-        assertThrows(IllegalStateException.class, () -> converter.convert(new MissingBean()));
+        assertThrows(EnumDictConvertException.class, () -> converter.convert(new MissingBean()));
     }
 
     @Test
     void appliesConfiguredMissingPolicyToServiceAndUtils() {
-        assertThrows(IllegalStateException.class, () -> service.convert(new MissingBean()));
-        assertThrows(IllegalStateException.class, () -> EnumDictUtils.convert(new MissingBean()));
+        assertThrows(EnumDictConvertException.class, () -> service.convert(new MissingBean()));
+        assertThrows(EnumDictConvertException.class, () -> EnumDictUtils.convert(new MissingBean()));
     }
 
     static class MissingBean {

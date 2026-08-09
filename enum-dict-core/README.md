@@ -218,8 +218,10 @@ jakit:
 | --- | --- | --- |
 | `jakit.enum-dict.enabled` | `true` | 是否启用自动装配 |
 | `jakit.enum-dict.base-packages` | 空 | 要扫描的包路径，支持多个值、逗号分隔和 Ant 通配符；配置后不再使用默认的 `AutoConfigurationPackages` |
-| `jakit.enum-dict.convert.missing-policy` | `IGNORE` | 字典 key 未命中时的默认处理策略：`IGNORE` 保留原值，`FAIL` 抛异常 |
-| `jakit.enum-dict.i18n.missing-policy` | `IGNORE` | 翻译缺失时的默认处理策略：`IGNORE` 回退字面 label，`FAIL` 抛异常 |
+| `jakit.enum-dict.convert.missing-policy` | `IGNORE` | 字典 key 未命中时的默认处理策略：`IGNORE` 保留原值，`FAIL` 抛 `EnumDictConvertException` |
+| `jakit.enum-dict.i18n.missing-policy` | `IGNORE` | 翻译缺失时的默认处理策略：`IGNORE` 回退字面 label，`FAIL` 抛 `EnumDictI18nException` |
+
+两个 `FAIL` 策略分别抛 `EnumDictConvertException` 与 `EnumDictI18nException`，二者均继承 `EnumDictException`。
 
 ## 查询 API
 
@@ -279,7 +281,7 @@ EnumDictUtils.convert(orders, order -> {
 - 标注字段必须是 String；`keyField` 缺省时使用标注字段自身作为字典 key 并原地覆盖，显式声明为自身字段名时行为相同。
 - `keyField` 指向兄弟字段时，读取该字段的值，把展示文本写入标注字段。
 - 嵌套的可转换 bean、`Collection`、`Map` 与对象数组会递归处理，按运行时实际类型判断，raw 或通配符泛型同样适用，基本类型数组跳过。
-- 未命中字典时默认保留原值，可通过 `jakit.enum-dict.convert.missing-policy: FAIL` 全局改为抛异常，或使用 `EnumDictConverter(registry, MissingPolicy.FAIL)` 局部切换。
+- 未命中字典时默认保留原值，可通过 `jakit.enum-dict.convert.missing-policy: FAIL` 全局改为抛 `EnumDictConvertException`，或使用 `EnumDictConverter(registry, MissingPolicy.FAIL)` 局部切换。
 - Record、final 字段和 JDK 值类型不会被写入。
 - 若 Map 的 key 是会被转换的 bean，业务方必须保证 key 的 `hashCode`/`equals` 不依赖被转换字段；转换后 SDK 不会重建 Map 桶结构，需要重建时由业务方自行处理。
 
