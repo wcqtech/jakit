@@ -247,7 +247,7 @@ jakit:
 
 ## 字典值转换
 
-把对象中的字典 key 映射为展示文本。在 String 字段上使用 `@DictField`，然后调用 `EnumDictService`、`EnumDictUtils` 或 `EnumDictRegistry` 的 `convert` 方法。支持集合转换，以及对目标对象的附加消费。
+把对象中的字典 key 映射为展示文本。在 String 字段上使用 `@DictField`，然后调用 `EnumDictService` 或 `EnumDictUtils` 的 `convert` 方法。支持集合转换，以及对目标对象的附加消费。
 
 ```java
 import com.github.wcqtech.jakit.enumdict.convert.DictField;
@@ -284,7 +284,7 @@ EnumDictUtils.convert(orders, order -> {
 
 ## 独立使用 core
 
-不启动 Spring 时，可以直接使用 `EnumDictRegistry`：
+不启动 Spring 时，可以直接使用 `EnumDictRegistry` 和 `EnumDictConverter`：
 
 ```java
 import com.github.wcqtech.jakit.enumdict.DictItem;
@@ -302,8 +302,17 @@ registry.register("OrderStatus", List.of(
 Map<String, List<DictItem>> grouped = registry.itemsByType();
 List<DictItem> flat = registry.allItems();
 ```
-
 注册表是线程安全的，查询结果以不可变副本返回。
+```java
+public class OrderVO {
+    @DictField(type = "OrderStatus")
+    String status;
+}
+
+EnumDictConverter converter = new EnumDictConverter(registry);
+converter.convert(orderVO); // status: "1" -> "已支付"
+```
+转换由 `EnumDictConverter` 完成。
 
 ## 校验规则
 
@@ -331,5 +340,5 @@ List<DictItem> flat = registry.allItems();
 
 | 模块 | 职责 | 依赖 |
 | --- | --- | --- |
-| `enum-dict-core` | 注解、`EnumDictSource`、`DictItem`、`EnumDictRegistry` | 无 |
+| `enum-dict-core` | 注解、`EnumDictSource`、`DictItem`、`EnumDictRegistry`、`EnumDictConverter` | 无 |
 | `enum-dict-spring-boot-starter` | 包扫描、自动装配、`EnumDictService` | `enum-dict-core` + Spring Boot |

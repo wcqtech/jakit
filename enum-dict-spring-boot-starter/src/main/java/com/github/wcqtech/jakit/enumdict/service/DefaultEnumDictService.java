@@ -2,6 +2,7 @@ package com.github.wcqtech.jakit.enumdict.service;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,14 +13,17 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * Default {@link EnumDictService} delegating to {@link EnumDictRegistry}.
+ * Default {@link EnumDictService} delegating queries to
+ * {@link EnumDictRegistry} and conversion to {@link EnumDictConverter}.
  */
 public class DefaultEnumDictService implements EnumDictService {
 
     private final EnumDictRegistry registry;
+    private final EnumDictConverter converter;
 
-    public DefaultEnumDictService(EnumDictRegistry registry) {
+    public DefaultEnumDictService(EnumDictRegistry registry, EnumDictConverter converter) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
+        this.converter = Objects.requireNonNull(converter, "converter must not be null");
     }
 
     @Override
@@ -104,16 +108,16 @@ public class DefaultEnumDictService implements EnumDictService {
 
     @Override
     public <T> T convert(T target) {
-        return registry.convert(target);
+        return converter.convert(target);
     }
 
     @Override
     public <T> void convert(Collection<T> targets) {
-        registry.convert(targets);
+        converter.convert(targets);
     }
 
     @Override
     public <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
-        registry.convert(targets, visitor);
+        converter.convert(targets, visitor);
     }
 }

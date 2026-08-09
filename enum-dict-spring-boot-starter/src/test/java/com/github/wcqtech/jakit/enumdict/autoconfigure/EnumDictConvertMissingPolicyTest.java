@@ -1,9 +1,9 @@
 package com.github.wcqtech.jakit.enumdict.autoconfigure;
 
-import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
 import com.github.wcqtech.jakit.enumdict.autoconfigure.testapp.TestApplication;
 import com.github.wcqtech.jakit.enumdict.convert.DictField;
 import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
+import com.github.wcqtech.jakit.enumdict.service.EnumDictService;
 import com.github.wcqtech.jakit.enumdict.service.EnumDictUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ class EnumDictConvertMissingPolicyTest {
     private EnumDictConverter converter;
 
     @Autowired
-    private EnumDictRegistry registry;
+    private EnumDictService service;
 
     @Test
     void appliesConfiguredMissingPolicyToConverter() {
@@ -27,8 +27,8 @@ class EnumDictConvertMissingPolicyTest {
     }
 
     @Test
-    void appliesConfiguredMissingPolicyToRegistryAndUtils() {
-        assertThrows(IllegalStateException.class, () -> registry.convert(new MissingBean()));
+    void appliesConfiguredMissingPolicyToServiceAndUtils() {
+        assertThrows(IllegalStateException.class, () -> service.convert(new MissingBean()));
         assertThrows(IllegalStateException.class, () -> EnumDictUtils.convert(new MissingBean()));
     }
 

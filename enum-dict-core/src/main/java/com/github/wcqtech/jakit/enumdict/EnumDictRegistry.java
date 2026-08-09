@@ -1,10 +1,6 @@
 package com.github.wcqtech.jakit.enumdict;
 
-import com.github.wcqtech.jakit.enumdict.convert.EnumDictConverter;
-import com.github.wcqtech.jakit.enumdict.convert.MissingPolicy;
-
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +8,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
  * Thread-safe, in-memory dictionary registry with no Spring dependency.
@@ -23,24 +18,6 @@ import java.util.function.Consumer;
 public final class EnumDictRegistry {
 
     private final Map<String, List<DictItem>> itemsByType = new ConcurrentHashMap<>();
-    private final EnumDictConverter converter;
-
-    /**
-     * Creates a registry whose convert methods use {@link MissingPolicy#IGNORE}.
-     */
-    public EnumDictRegistry() {
-        this(MissingPolicy.IGNORE);
-    }
-
-    /**
-     * Creates a registry whose convert methods use the given missing policy.
-     *
-     * @param missingPolicy the policy applied when a dictionary key is missing
-     */
-    public EnumDictRegistry(MissingPolicy missingPolicy) {
-        this.converter = new EnumDictConverter(this,
-                Objects.requireNonNull(missingPolicy, "missingPolicy must not be null"));
-    }
 
     public void register(String type, List<DictItem> items) {
         Objects.requireNonNull(type, "type must not be null");
@@ -109,40 +86,6 @@ public final class EnumDictRegistry {
 
     public boolean contains(String type, String key) {
         return get(type, key).isPresent();
-    }
-
-    /**
-     * Converts dictionary keys on the fields of the given object into
-     * dictionary values, including nested beans, collections and maps.
-     *
-     * @param target the object to convert
-     * @param <T> the object type
-     * @return the same object instance
-     */
-    public <T> T convert(T target) {
-        return converter.convert(target);
-    }
-
-    /**
-     * Converts every element of the given collection.
-     *
-     * @param targets the elements to convert
-     * @param <T> the element type
-     */
-    public <T> void convert(Collection<T> targets) {
-        converter.convert(targets);
-    }
-
-    /**
-     * Converts every element of the given collection, then invokes the visitor
-     * on each converted element.
-     *
-     * @param targets the elements to convert
-     * @param visitor invoked after each element is converted
-     * @param <T> the element type
-     */
-    public <T> void convert(Collection<T> targets, Consumer<? super T> visitor) {
-        converter.convert(targets, visitor);
     }
 
     private static void validateItems(String type, List<DictItem> items) {

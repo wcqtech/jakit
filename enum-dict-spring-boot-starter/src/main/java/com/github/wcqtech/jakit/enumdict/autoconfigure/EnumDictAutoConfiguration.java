@@ -23,8 +23,8 @@ public class EnumDictAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EnumDictRegistry enumDictRegistry(EnumDictProperties properties) {
-        return new EnumDictRegistry(properties.getConvert().getMissingPolicy());
+    public EnumDictRegistry enumDictRegistry() {
+        return new EnumDictRegistry();
     }
 
     @Bean
@@ -35,8 +35,8 @@ public class EnumDictAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EnumDictService enumDictService(EnumDictRegistry registry) {
-        return new DefaultEnumDictService(registry);
+    public EnumDictService enumDictService(EnumDictRegistry registry, EnumDictConverter converter) {
+        return new DefaultEnumDictService(registry, converter);
     }
 
     @Bean

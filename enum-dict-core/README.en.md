@@ -244,7 +244,7 @@ Rules:
 
 ## Dictionary Value Conversion
 
-Maps dictionary keys on objects to display text. Annotate a `String` field with `@DictField`, then call `convert` on `EnumDictService`, `EnumDictUtils`, or `EnumDictRegistry`. Collection conversion and an additional consumer for each target object are also supported.
+Maps dictionary keys on objects to display text. Annotate a `String` field with `@DictField`, then call `convert` on `EnumDictService` or `EnumDictUtils`. Collection conversion and an additional consumer for each target object are also supported.
 
 ```java
 import com.github.wcqtech.jakit.enumdict.convert.DictField;
@@ -281,7 +281,7 @@ Rules:
 
 ## Standalone Core Usage
 
-Without Spring, use `EnumDictRegistry` directly:
+Without Spring, use `EnumDictRegistry` and `EnumDictConverter` directly:
 
 ```java
 import com.github.wcqtech.jakit.enumdict.DictItem;
@@ -299,8 +299,17 @@ registry.register("OrderStatus", List.of(
 Map<String, List<DictItem>> grouped = registry.itemsByType();
 List<DictItem> flat = registry.allItems();
 ```
-
 The registry is thread-safe and query results are returned as immutable copies.
+```java
+public class OrderVO {
+    @DictField(type = "OrderStatus")
+    String status;
+}
+
+EnumDictConverter converter = new EnumDictConverter(registry);
+converter.convert(orderVO); // status: "1" -> "Paid"
+```
+Conversion is performed by the `EnumDictConverter`.
 
 ## Validation Rules
 
@@ -327,5 +336,5 @@ The following cases fail fast at startup with explicit error messages:
 
 | Module | Responsibility | Dependencies |
 | --- | --- | --- |
-| `enum-dict-core` | Annotations, `EnumDictSource`, `DictItem`, `EnumDictRegistry` | none |
+| `enum-dict-core` | Annotations, `EnumDictSource`, `DictItem`, `EnumDictRegistry`, `EnumDictConverter` | none |
 | `enum-dict-spring-boot-starter` | Package scanning, auto-configuration, `EnumDictService` | `enum-dict-core` + Spring Boot |
