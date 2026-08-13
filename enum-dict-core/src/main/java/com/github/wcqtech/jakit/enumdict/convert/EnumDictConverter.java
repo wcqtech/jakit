@@ -1,7 +1,9 @@
 package com.github.wcqtech.jakit.enumdict.convert;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.EnumDictException;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.EnumDictTypeResolver;
 import com.github.wcqtech.jakit.enumdict.i18n.DictValueResolver;
 
 import java.lang.reflect.Field;
@@ -304,12 +306,37 @@ public final class EnumDictConverter {
             }
             makeAccessible(field);
             makeAccessible(keyField);
-            dictFields.add(new DictFieldPlan(field, keyField, annotation.type()));
+            dictFields.add(new DictFieldPlan(field, keyField, resolveDictFieldType(type, field, annotation)));
         }
         for (Field field : fields) {
             makeAccessible(field);
         }
         return new ClassPlan(fields, List.copyOf(dictFields));
+    }
+
+    private static String resolveDictFieldType(Class<?> beanType, Field field, DictField annotation) {
+        String type = annotation.type();
+        Class<?> enumType = annotation.enumType();
+        if (type.isBlank() && enumType == Void.class) {
+            throw new IllegalArgumentException("@DictField on " + beanType.getName() + "." + field.getName()
+                    + " must specify type or enumType");
+        }
+        if (enumType == Void.class) {
+            return type;
+        }
+        String resolved;
+        try {
+            resolved = EnumDictTypeResolver.resolve(enumType);
+        } catch (EnumDictException e) {
+            throw new IllegalArgumentException("@DictField on " + beanType.getName() + "." + field.getName()
+                    + " cannot resolve dictionary type from " + enumType.getName(), e);
+        }
+        if (!type.isBlank() && !type.equals(resolved)) {
+            throw new IllegalArgumentException("@DictField on " + beanType.getName() + "." + field.getName()
+                    + " has conflicting dictionary types: type='" + type + "' and enumType="
+                    + enumType.getName() + " resolved to '" + resolved + "'");
+        }
+        return resolved;
     }
 
     private static void makeAccessible(Field field) {

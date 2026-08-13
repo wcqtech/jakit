@@ -5,8 +5,10 @@ import com.github.wcqtech.jakit.enumdict.DictI18n;
 import com.github.wcqtech.jakit.enumdict.DictKey;
 import com.github.wcqtech.jakit.enumdict.DictValue;
 import com.github.wcqtech.jakit.enumdict.EnumDict;
+import com.github.wcqtech.jakit.enumdict.EnumDictException;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
 import com.github.wcqtech.jakit.enumdict.EnumDictSource;
+import com.github.wcqtech.jakit.enumdict.EnumDictTypeResolver;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.io.ResourceLoader;
@@ -89,15 +91,9 @@ public final class EnumDictScanner {
     }
 
     private static String collectFromInterface(Class<?> enumType, Enum<?>[] constants, List<DictItem> items) {
-        EnumDictSource first = (EnumDictSource) constants[0];
-        String type = requireType(enumType, first.getDictType());
+        String type = resolveType(enumType);
         for (Enum<?> constant : constants) {
             EnumDictSource source = (EnumDictSource) constant;
-            String constantType = source.getDictType();
-            if (!type.equals(constantType)) {
-                throw new IllegalStateException("Inconsistent dictionary type in " + enumType.getName()
-                        + ": " + type + " vs " + constantType);
-            }
             Object key = source.getDictKey();
             if (key == null) {
                 throw new IllegalStateException("Null dictionary key in " + enumType.getName() + "." + constant.name());
@@ -113,11 +109,7 @@ public final class EnumDictScanner {
     }
 
     private static String collectFromAnnotations(Class<?> enumType, Enum<?>[] constants, List<DictItem> items) {
-        EnumDict annotation = enumType.getAnnotation(EnumDict.class);
-        if (annotation == null) {
-            throw new IllegalStateException("Missing @EnumDict on " + enumType.getName());
-        }
-        String type = annotation.type().isBlank() ? enumType.getSimpleName() : annotation.type();
+        String type = resolveType(enumType);
         Field keyField = findAnnotatedField(enumType, DictKey.class);
         Field valueField = findAnnotatedField(enumType, DictValue.class);
         Field i18nField = findAnnotatedField(enumType, DictI18n.class);
@@ -148,19 +140,20 @@ public final class EnumDictScanner {
         return type;
     }
 
+    private static String resolveType(Class<?> enumType) {
+        try {
+            return EnumDictTypeResolver.resolve(enumType);
+        } catch (EnumDictException e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
+    }
+
     private static Object readField(Class<?> enumType, Enum<?> constant, Field field) {
         try {
             return field.get(constant);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException("Cannot read field " + field.getName() + " on " + enumType.getName(), e);
         }
-    }
-
-    private static String requireType(Class<?> enumType, String type) {
-        if (type == null || type.isBlank()) {
-            throw new IllegalStateException("Blank dictionary type from " + enumType.getName());
-        }
-        return type;
     }
 
     private static Field findAnnotatedField(Class<?> enumType, Class<? extends Annotation> annotationType) {

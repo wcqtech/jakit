@@ -23,8 +23,17 @@ public @interface DictField {
 
     /**
      * Dictionary type to look up, matching a type registered in the registry.
+     * Blank when the type is derived from {@link #enumType()}.
      */
-    String type();
+    String type() default "";
+
+    /**
+     * Dictionary‑derived enum class. Enum must implement {@link com.github.wcqtech.jakit.enumdict.EnumDictSource}
+     * or be annotated with {@link com.github.wcqtech.jakit.enumdict.EnumDict}; interface takes precedence if both exist.
+     * Defaults to {@link Void} (unset). When {@link #type()} and this attribute are both specified,
+     * resolved enum type must match {@link #type()}.
+     */
+    Class<?> enumType() default Void.class;
 
     /**
      * Name of the field holding the dictionary key within the same object.

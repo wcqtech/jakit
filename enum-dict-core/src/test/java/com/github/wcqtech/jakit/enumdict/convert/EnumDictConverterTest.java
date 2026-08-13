@@ -1,7 +1,11 @@
 package com.github.wcqtech.jakit.enumdict.convert;
 
 import com.github.wcqtech.jakit.enumdict.DictItem;
+import com.github.wcqtech.jakit.enumdict.DictKey;
+import com.github.wcqtech.jakit.enumdict.DictValue;
+import com.github.wcqtech.jakit.enumdict.EnumDict;
 import com.github.wcqtech.jakit.enumdict.EnumDictRegistry;
+import com.github.wcqtech.jakit.enumdict.EnumDictSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,6 +50,8 @@ class EnumDictConverterTest {
         registry.register("node_type", List.of(
                 new DictItem("node_type", "root", "根节点"),
                 new DictItem("node_type", "child", "子节点")));
+        registry.register("AnnotatedDefaultType", List.of(
+                new DictItem("AnnotatedDefaultType", "A", "普通用户")));
         converter = new EnumDictConverter(registry);
     }
 
@@ -321,6 +327,82 @@ class EnumDictConverterTest {
     }
 
     @Test
+    void convertsUsingTypeResolvedFromEnumDictSource() {
+        EnumSourceBean bean = new EnumSourceBean();
+
+        converter.convert(bean);
+
+        assertEquals("待支付", bean.status);
+    }
+
+    @Test
+    void convertsUsingTypeResolvedFromEnumDictAnnotation() {
+        AnnotationSourceBean bean = new AnnotationSourceBean();
+
+        converter.convert(bean);
+
+        assertEquals("普通用户", bean.levelName);
+    }
+
+    @Test
+    void convertsUsingDefaultTypeFromEnumDictAnnotation() {
+        DefaultAnnotationSourceBean bean = new DefaultAnnotationSourceBean();
+
+        converter.convert(bean);
+
+        assertEquals("普通用户", bean.status);
+    }
+
+    @Test
+    void acceptsMatchingStringTypeAndEnumType() {
+        MatchingSourceBean bean = new MatchingSourceBean();
+
+        converter.convert(bean);
+
+        assertEquals("待支付", bean.status);
+    }
+
+    @Test
+    void rejectsConflictingStringTypeAndEnumType() {
+        ConflictingSourceBean bean = new ConflictingSourceBean();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> converter.convert(bean));
+
+        assertTrue(error.getMessage().contains("conflicting dictionary types"));
+    }
+
+    @Test
+    void rejectsMissingTypeAndEnumType() {
+        MissingSourceBean bean = new MissingSourceBean();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> converter.convert(bean));
+
+        assertTrue(error.getMessage().contains("must specify type or enumType"));
+    }
+
+    @Test
+    void rejectsEnumTypeWithoutDictionaryContract() {
+        PlainEnumSourceBean bean = new PlainEnumSourceBean();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> converter.convert(bean));
+
+        assertTrue(error.getMessage().contains("cannot resolve dictionary type"));
+    }
+
+    @Test
+    void rejectsNonEnumClassAsEnumType() {
+        NonEnumSourceBean bean = new NonEnumSourceBean();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> converter.convert(bean));
+
+        assertTrue(error.getMessage().contains("cannot resolve dictionary type"));
+    }
+
+    @Test
     void convertsConcurrentlyWithCachedMetadata() throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(4);
         try {
@@ -433,5 +515,108 @@ class EnumDictConverterTest {
     static class MissingKeyBean {
         @DictField(type = "order_status", keyField = "absent")
         String statusName;
+    }
+
+    static class EnumSourceBean {
+        @DictField(enumType = InterfaceOrderStatus.class)
+        String status = "1";
+    }
+
+    enum InterfaceOrderStatus implements EnumDictSource {
+        PENDING("1", "待支付");
+
+        private final String key;
+        private final String value;
+
+        InterfaceOrderStatus(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public String getDictType() {
+            return "order_status";
+        }
+
+        @Override
+        public Object getDictKey() {
+            return key;
+        }
+
+        @Override
+        public Object getDictValue() {
+            return value;
+        }
+    }
+
+    static class AnnotationSourceBean {
+        @DictField(enumType = AnnotatedUserLevel.class)
+        String levelName = "A";
+    }
+
+    @EnumDict(type = "user_level")
+    enum AnnotatedUserLevel {
+        A("A", "普通用户");
+
+        @DictKey
+        private final String key;
+
+        @DictValue
+        private final String value;
+
+        AnnotatedUserLevel(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    static class DefaultAnnotationSourceBean {
+        @DictField(enumType = AnnotatedDefaultType.class)
+        String status = "A";
+    }
+
+    @EnumDict
+    enum AnnotatedDefaultType {
+        A("A", "普通用户");
+
+        @DictKey
+        private final String key;
+
+        @DictValue
+        private final String value;
+
+        AnnotatedDefaultType(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    static class MatchingSourceBean {
+        @DictField(type = "order_status", enumType = InterfaceOrderStatus.class)
+        String status = "1";
+    }
+
+    static class ConflictingSourceBean {
+        @DictField(type = "user_level", enumType = InterfaceOrderStatus.class)
+        String status = "1";
+    }
+
+    static class MissingSourceBean {
+        @DictField
+        String status = "1";
+    }
+
+    enum PlainEnum {
+        A
+    }
+
+    static class PlainEnumSourceBean {
+        @DictField(enumType = PlainEnum.class)
+        String status = "1";
+    }
+
+    static class NonEnumSourceBean {
+        @DictField(enumType = String.class)
+        String status = "1";
     }
 }

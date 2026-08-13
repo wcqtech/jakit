@@ -268,6 +268,13 @@ public class OrderVO {
 }
 ```
 
+也可以直接指定枚举类，由枚举声明解析出字典 type：
+
+```java
+@DictField(enumType = OrderStatus.class)
+private String status; // 效果等同 @DictField(type = "order_status")
+```
+
 ```java
 EnumDictUtils.convert(orderVO);
 EnumDictUtils.convert(orders); // 集合转换
@@ -279,6 +286,8 @@ EnumDictUtils.convert(orders, order -> {
 规则：
 
 - 标注字段必须是 String；`keyField` 缺省时使用标注字段自身作为字典 key 并原地覆盖，显式声明为自身字段名时行为相同。
+- `type` 与 `enumType` 至少指定一个；同时指定时，`enumType` 解析出的 type 必须与 `type` 一致，否则抛 `IllegalArgumentException`。
+- `enumType` 指定的枚举必须实现 `EnumDictSource` 或标注 `@EnumDict`；两者都存在时以接口为准，均不满足时在转换元数据解析阶段报错。
 - `keyField` 指向兄弟字段时，读取该字段的值，把展示文本写入标注字段。
 - 嵌套的可转换 bean、`Collection`、`Map` 与对象数组会递归处理，按运行时实际类型判断，raw 或通配符泛型同样适用，基本类型数组跳过。
 - 未命中字典时默认保留原值，可通过 `jakit.enum-dict.convert.missing-policy: FAIL` 全局改为抛 `EnumDictConvertException`，或使用 `EnumDictConverter(registry, MissingPolicy.FAIL)` 局部切换。
@@ -383,6 +392,8 @@ converter.convert(orderVO, Locale.CHINESE); // status: "1" -> "已支付"
 - 同一 type 内出现重复 key。
 - 同一 type 被不同内容重复注册。
 - key 或 value 为 null。
+- `@DictField` 未指定 `type` 或 `enumType`，或两者解析结果冲突。
+- `@DictField` 的 `enumType` 指向非枚举类，或指向既未实现 `EnumDictSource` 也未标注 `@EnumDict` 的枚举。
 
 
 ## 特性

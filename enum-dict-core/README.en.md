@@ -265,6 +265,13 @@ public class OrderVO {
 }
 ```
 
+The dictionary type can also be derived from an enum class:
+
+```java
+@DictField(enumType = OrderStatus.class)
+private String status; // equivalent to @DictField(type = "order_status")
+```
+
 ```java
 EnumDictUtils.convert(orderVO);
 EnumDictUtils.convert(orders); // collection conversion
@@ -276,6 +283,8 @@ EnumDictUtils.convert(orders, order -> {
 Rules:
 
 - The annotated field must be a `String`. When `keyField` is blank, the annotated field itself is the key source and is overwritten in place; explicitly naming the annotated field has the same behavior.
+- At least one of `type` and `enumType` must be specified. When both are present, the type resolved from `enumType` must equal `type`, otherwise an `IllegalArgumentException` is thrown.
+- The enum referenced by `enumType` must implement `EnumDictSource` or be annotated with `@EnumDict`; when both are present, the interface wins. If neither is present, metadata parsing fails.
 - When `keyField` names a sibling field, the value of that field is read and the display text is written to the annotated field.
 - Nested convertible beans, `Collection`, `Map`, and object arrays are processed recursively by runtime type; raw and wildcard generic fields are also supported, while primitive arrays are skipped.
 - When a key is missing, the original value is kept by default; switch globally with `jakit.enum-dict.convert.missing-policy: FAIL`, or locally with `EnumDictConverter(registry, MissingPolicy.FAIL)`, to throw `EnumDictConvertException`.
@@ -380,6 +389,8 @@ The following cases fail fast at startup with explicit error messages:
 - A duplicate key appears within the same type.
 - The same type is re-registered with different content.
 - A key or value is `null`.
+- `@DictField` is missing both `type` and `enumType`, or the two resolve to conflicting types.
+- `@DictField` `enumType` references a non-enum class, or an enum that neither implements `EnumDictSource` nor is annotated with `@EnumDict`.
 
 ## Features
 
