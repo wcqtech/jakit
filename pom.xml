@@ -36,6 +36,7 @@
   <modules>
     <module>enum-dict-core</module>
     <module>enum-dict-spring-boot-starter</module>
+    <module>common-core</module>
   </modules>
 
   <properties>
