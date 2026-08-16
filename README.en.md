@@ -9,12 +9,15 @@ jakit is a Java development toolkit.
 
 [enum-dict](enum-dict-core/README.en.md) is a data dictionary component: simple and fast, turning enums into data dictionaries.
 
+[common-utils](common-utils/README.en.md) is a collection of useful tools.
+
 ## Modules
 
 | Module | Description |
 | --- | --- |
 | `enum-dict-core` | Annotations, the `EnumDictSource` interface, `DictItem`, `EnumDictRegistry`, and `EnumDictConverter`. Zero Spring dependency, usable standalone in plain Java projects. |
 | `enum-dict-spring-boot-starter` | Spring Boot 3 auto-configuration that scans enum dictionaries in business packages, registers them in memory, and provides `EnumDictService` and `EnumDictUtils`. |
+| `common-utils` | Dependency-free common utility classes, including sequence, BigDecimal, and Chinese amount utilities. |
 
 ## Requirements
 
