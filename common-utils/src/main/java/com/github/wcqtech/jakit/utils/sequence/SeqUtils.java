@@ -173,4 +173,24 @@ public final class SeqUtils {
                                        Consumer<? super T> visitor) {
         sequence(targets, setter, convert, 1, 1, visitor);
     }
+
+    /**
+     * Assigns integer sequence values starting at {@code 1} with step
+     * {@code 1}, and invokes the visitor after each assignment.
+     *
+     * Equivalent to
+     * {@link #sequence(Collection, BiConsumer, int, int, Consumer)} with
+     * {@code start = 1} and {@code step = 1}.
+     *
+     * @param targets the elements to sequence; must not be null; an empty
+     *                collection is a no-op
+     * @param setter writes the sequence value into an element; must not be null
+     * @param visitor invoked with each element after its sequence is assigned;
+     *                must not be null
+     * @param <T> the element type
+     * @throws NullPointerException if any argument is null
+     */
+    public static <T> void sequence(Collection<T> targets, BiConsumer<T, Integer> setter, Consumer<? super T> visitor) {
+        sequence(targets, setter, Function.identity(), 1, 1, visitor);
+    }
 }
