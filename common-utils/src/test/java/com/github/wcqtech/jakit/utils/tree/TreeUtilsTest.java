@@ -2,8 +2,12 @@ package com.github.wcqtech.jakit.utils.tree;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,6 +49,14 @@ class TreeUtilsTest {
 
     private static List<Integer> dataIds(List<Node> data) {
         return data.stream().map(Node::id).toList();
+    }
+
+    private static List<String> nodeNames(List<TreeNode<Node>> nodes) {
+        return nodes.stream().map(node -> node.getData().name()).toList();
+    }
+
+    private static List<String> dataNames(List<Node> data) {
+        return data.stream().map(Node::name).toList();
     }
 
     private static List<TreeNode<Node>> sampleForest() {
@@ -276,6 +288,248 @@ class TreeUtilsTest {
     }
 
     @Test
+    void findAtDepthReturnsNodesExactlyAtDepth() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertEquals(List.of(1, 6), ids(TreeUtils.findAtDepth(roots, 0)));
+        assertEquals(List.of(2, 3, 7), ids(TreeUtils.findAtDepth(roots, 1)));
+        assertEquals(List.of(4, 5), ids(TreeUtils.findAtDepth(roots, 2)));
+        assertTrue(TreeUtils.findAtDepth(roots, 3).isEmpty());
+
+        assertEquals(List.of(1), ids(TreeUtils.findAtDepth(roots.get(0), 0)));
+        assertEquals(List.of(2, 3), ids(TreeUtils.findAtDepth(roots.get(0), 1)));
+        assertEquals(List.of(4, 5), ids(TreeUtils.findAtDepth(roots.get(0), 2)));
+        assertTrue(TreeUtils.findAtDepth(roots.get(0), 3).isEmpty());
+    }
+
+    @Test
+    void findAtDepthKeepsInputAndChildrenOrder() {
+        List<TreeNode<Node>> roots = sampleForest();
+        // roots are [1, 6] in input order; children of 1 are [2, 3]
+        assertEquals(List.of(1, 6), ids(TreeUtils.findAtDepth(roots, 0)));
+        assertEquals(List.of(2, 3, 7), ids(TreeUtils.findAtDepth(roots, 1)));
+    }
+
+    @Test
+    void findAtDepthReturnsEmptyForShallowInput() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> leaf = roots.get(0).getChildren().get(1);
+
+        assertTrue(TreeUtils.findAtDepth(leaf, 1).isEmpty());
+        assertTrue(TreeUtils.findAtDepth(List.of(), 0).isEmpty());
+        assertTrue(TreeUtils.findAtDepth(List.of(), 5).isEmpty());
+    }
+
+    @Test
+    void findAtDepthRejectsNegativeDepth() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertThrows(IllegalArgumentException.class, () -> TreeUtils.findAtDepth(roots, -1));
+        assertThrows(IllegalArgumentException.class, () -> TreeUtils.findAtDepth(roots.get(0), -1));
+    }
+
+    @Test
+    void findByIdFindsNodeInForest() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertEquals(5, TreeUtils.findById(roots, Node::id, 5).orElseThrow().getData().id());
+        assertEquals(2, TreeUtils.findById(roots, Node::id, 5).orElseThrow().getDepth());
+        assertEquals(0, TreeUtils.findById(roots, Node::id, 1).orElseThrow().getDepth());
+        assertEquals(2, TreeUtils.findById(roots.get(0), Node::id, 2).orElseThrow().getData().id());
+    }
+
+    @Test
+    void findByIdReturnsEmptyWhenMissing() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertTrue(TreeUtils.findById(roots, Node::id, 99).isEmpty());
+        assertTrue(TreeUtils.findById(List.of(), Node::id, 1).isEmpty());
+        // node 6 lives in the second tree, not under root 1
+        assertTrue(TreeUtils.findById(roots.get(0), Node::id, 6).isEmpty());
+    }
+
+    @Test
+    void findByIdRejectsNullArguments() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findById((Collection<TreeNode<Node>>) null, Node::id, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findById(roots, null, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findById((TreeNode<Node>) null, Node::id, 1));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.findById(roots, Node::id, null));
+    }
+
+    @Test
+    void uniqueIndexBuildsKeyMapInPreorderOrder() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        Map<Integer, TreeNode<Node>> index = TreeUtils.uniqueIndex(roots, Node::id);
+
+        assertEquals(List.of(1, 2, 4, 5, 3, 6, 7), new ArrayList<>(index.keySet()));
+        assertEquals(3, index.get(3).getData().id());
+        assertEquals(1, index.get(3).getDepth());
+        assertEquals(7, TreeUtils.uniqueIndexData(roots, Node::id).get(7).id());
+        assertEquals(0, TreeUtils.uniqueIndex(roots.get(0), Node::id).get(1).getDepth());
+    }
+
+    @Test
+    void uniqueIndexRejectsDuplicateAndNullKeys() {
+        List<TreeNode<Node>> dupRoots = TreeUtils.buildTree(List.of(
+                new Node(1, null, "dup"),
+                new Node(2, null, "dup")
+        ), Node::id, Node::parentId);
+
+        IllegalArgumentException duplicate = assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.uniqueIndex(dupRoots, Node::name));
+        assertTrue(duplicate.getMessage().contains("dup"));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.uniqueIndexData(dupRoots, Node::name));
+
+        List<TreeNode<Node>> roots = sampleForest();
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.uniqueIndex(roots, node -> null));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.uniqueIndexData(roots, node -> null));
+    }
+
+    @Test
+    void indexGroupsByKeyInTraversalOrder() {
+        // parent ids are never null here: 0 is not a real id, so node 1 is a root
+        List<TreeNode<Node>> roots = TreeUtils.buildTree(List.of(
+                node(1, 0), node(2, 1), node(3, 1), node(4, 2), node(5, 2)
+        ), Node::id, Node::parentId);
+
+        Map<Integer, List<TreeNode<Node>>> index = TreeUtils.index(roots, Node::parentId);
+
+        assertEquals(List.of(0, 1, 2), new ArrayList<>(index.keySet()));
+        assertEquals(List.of(1), ids(index.get(0)));
+        assertEquals(List.of(2, 3), ids(index.get(1)));
+        assertEquals(List.of(4, 5), ids(index.get(2)));
+
+        Map<Integer, List<Node>> dataIndex = TreeUtils.indexData(roots, Node::parentId);
+        assertEquals(List.of(2, 3), dataIds(dataIndex.get(1)));
+
+        // single-root overload
+        Map<Integer, List<TreeNode<Node>>> single = TreeUtils.index(roots.get(0), Node::parentId);
+        assertEquals(List.of(0, 1, 2), new ArrayList<>(single.keySet()));
+    }
+
+    @Test
+    void indexSortsEachGroupWithComparator() {
+        List<TreeNode<Node>> roots = TreeUtils.buildTree(List.of(
+                new Node(1, 0, "root1"),
+                new Node(2, 1, "B"),
+                new Node(3, 1, "A"),
+                new Node(4, 2, "d"),
+                new Node(5, 2, "c"),
+                new Node(6, 1, "C")
+        ), Node::id, Node::parentId);
+
+        Map<Integer, List<TreeNode<Node>>> index = TreeUtils.index(roots, Node::parentId,
+                Comparator.comparing(Node::name).reversed());
+
+        assertEquals(List.of(0, 1, 2), new ArrayList<>(index.keySet()));
+        assertEquals(List.of("root1"), nodeNames(index.get(0)));
+        assertEquals(List.of("C", "B", "A"), nodeNames(index.get(1)));
+        assertEquals(List.of("d", "c"), nodeNames(index.get(2)));
+
+        Map<Integer, List<Node>> dataIndex = TreeUtils.indexData(roots, Node::parentId,
+                Comparator.comparing(Node::name).reversed());
+        assertEquals(List.of("C", "B", "A"), dataNames(dataIndex.get(1)));
+    }
+
+    @Test
+    void indexReturnsEmptyForEmptyInput() {
+        assertTrue(TreeUtils.uniqueIndex(List.of(), Node::id).isEmpty());
+        assertTrue(TreeUtils.uniqueIndexData(List.of(), Node::id).isEmpty());
+        assertTrue(TreeUtils.index(List.of(), Node::parentId).isEmpty());
+        assertTrue(TreeUtils.indexData(List.of(), Node::parentId).isEmpty());
+    }
+
+    @Test
+    void indexRejectsNullArgumentsAndKeys() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.uniqueIndex((Collection<TreeNode<Node>>) null, Node::id));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.uniqueIndex(roots, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.uniqueIndex((TreeNode<Node>) null, Node::id));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.index((Collection<TreeNode<Node>>) null, Node::parentId));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.index(roots, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.index(roots, Node::parentId, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.indexData(roots, Node::parentId, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.indexData((TreeNode<Node>) null, Node::parentId));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.index(roots, node -> null));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.indexData(roots, node -> null));
+    }
+
+    @Test
+    void descendantsExcludesNodeItselfInPreorder() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertEquals(List.of(2, 4, 5, 3), ids(TreeUtils.descendants(roots.get(0))));
+        assertEquals(List.of(4, 5), ids(TreeUtils.descendants(roots.get(0).getChildren().get(0))));
+        assertEquals(List.of(7), ids(TreeUtils.descendants(roots.get(1))));
+        assertTrue(TreeUtils.descendants(roots.get(0).getChildren().get(1)).isEmpty()); // leaf 3
+
+        assertEquals(List.of(2, 4, 5, 3), dataIds(TreeUtils.descendantsData(roots.get(0))));
+        assertTrue(TreeUtils.descendantsData(roots.get(0).getChildren().get(1)).isEmpty());
+    }
+
+    @Test
+    void findPathReturnsRootToNodePath() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertEquals(List.of(1, 2, 4), ids(TreeUtils.findPath(roots, Node::id, 4).orElseThrow()));
+        assertEquals(List.of(1), ids(TreeUtils.findPath(roots, Node::id, 1).orElseThrow()));
+        assertEquals(List.of(6, 7), ids(TreeUtils.findPath(roots, Node::id, 7).orElseThrow()));
+        assertTrue(TreeUtils.findPath(roots, Node::id, 99).isEmpty());
+        assertTrue(TreeUtils.findPath(List.of(), Node::id, 1).isEmpty());
+        // a subtree root passed as the only root starts a fresh path
+        TreeNode<Node> subtree = roots.get(0).getChildren().get(0);
+        assertEquals(List.of(2, 5), ids(TreeUtils.findPath(List.of(subtree), Node::id, 5).orElseThrow()));
+    }
+
+    @Test
+    void findPathDataReturnsBusinessDataPath() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertEquals(List.of(1, 2, 4), dataIds(TreeUtils.findPathData(roots, Node::id, 4).orElseThrow()));
+        assertTrue(TreeUtils.findPathData(roots, Node::id, 99).isEmpty());
+    }
+
+    @Test
+    void descendantsAndFindPathRejectNullArguments() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertThrows(NullPointerException.class, () -> TreeUtils.descendants(null));
+        assertThrows(NullPointerException.class, () -> TreeUtils.descendantsData(null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPath(null, Node::id, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPath(roots, null, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPathData(null, Node::id, 1));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.findPath(roots, Node::id, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.findPathData(roots, Node::id, null));
+    }
+
+    @Test
     void traversalReturnsEmptyForEmptyCollection() {
         assertTrue(TreeUtils.preorder(List.of()).isEmpty());
         assertTrue(TreeUtils.postorder(List.of()).isEmpty());
@@ -361,6 +615,10 @@ class TreeUtilsTest {
                 () -> TreeUtils.bfs((TreeNode<Node>) null, 1));
         assertThrows(NullPointerException.class,
                 () -> TreeUtils.bfs((List<TreeNode<Node>>) null, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findAtDepth((TreeNode<Node>) null, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findAtDepth((List<TreeNode<Node>>) null, 1));
     }
 
     @Test

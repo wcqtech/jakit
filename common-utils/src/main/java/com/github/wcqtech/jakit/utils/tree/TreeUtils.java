@@ -3,13 +3,16 @@ package com.github.wcqtech.jakit.utils.tree;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -495,9 +498,545 @@ public final class TreeUtils {
         return mapData(bfs(roots));
     }
 
-    private static void requireNonNegative(int maxDepth) {
-        if (maxDepth < 0) {
-            throw new IllegalArgumentException("maxDepth must not be negative: " + maxDepth);
+    /**
+     * Returns the nodes located exactly at the given depth relative to the
+     * passed root.
+     *
+     * <p>The returned nodes keep the order of the input and of the children
+     * lists, level by level from left to right.
+     *
+     * @param root the root node; must not be null
+     * @param depth the depth to look up; {@code 0} returns the root itself;
+     *              must not be negative
+     * @param <T> the business data type
+     * @return the nodes at the given depth; empty if the tree is shallower
+     * @throws NullPointerException if {@code root} is null
+     * @throws IllegalArgumentException if {@code depth} is negative
+     */
+    public static <T> List<TreeNode<T>> findAtDepth(TreeNode<T> root, int depth) {
+        return findAtDepth(List.of(Objects.requireNonNull(root, "root must not be null")), depth);
+    }
+
+    /**
+     * Returns the nodes located exactly at the given depth relative to the
+     * passed roots.
+     *
+     * <p>The returned nodes keep the order of the input and of the children
+     * lists, level by level from left to right.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty list
+     * @param depth the depth to look up; {@code 0} returns the roots
+     *              themselves; must not be negative
+     * @param <T> the business data type
+     * @return the nodes at the given depth; empty if the trees are shallower
+     * @throws NullPointerException if {@code roots} is null
+     * @throws IllegalArgumentException if {@code depth} is negative
+     */
+    public static <T> List<TreeNode<T>> findAtDepth(Collection<TreeNode<T>> roots, int depth) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        requireNonNegative(depth);
+        List<TreeNode<T>> result = new ArrayList<>();
+        Deque<TreeNode<T>> queue = new ArrayDeque<>();
+        Deque<Integer> depths = new ArrayDeque<>();
+        for (TreeNode<T> root : roots) {
+            queue.add(root);
+            depths.add(0);
+        }
+        while (!queue.isEmpty()) {
+            TreeNode<T> node = queue.remove();
+            int nodeDepth = depths.remove();
+            if (nodeDepth == depth) {
+                result.add(node);
+            } else if (nodeDepth < depth) {
+                for (TreeNode<T> child : node.getChildren()) {
+                    queue.add(child);
+                    depths.add(nodeDepth + 1);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Finds the first node whose extracted id equals the given id, searching
+     * the tree in preorder.
+     *
+     * @param root the root node; must not be null
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the matching node, or {@code Optional.empty()} if no node
+     *         matches
+     * @throws NullPointerException if {@code root} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<TreeNode<T>> findById(TreeNode<T> root,
+                                                         Function<T, ID> idExtractor,
+                                                         ID id) {
+        return findById(List.of(Objects.requireNonNull(root, "root must not be null")), idExtractor, id);
+    }
+
+    /**
+     * Finds the first node whose extracted id equals the given id, searching
+     * the forest in preorder.
+     *
+     * <p>Nodes whose extracted id is null never match, since built trees
+     * cannot contain null ids.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the matching node, or {@code Optional.empty()} if no node
+     *         matches
+     * @throws NullPointerException if {@code roots} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<TreeNode<T>> findById(Collection<TreeNode<T>> roots,
+                                                         Function<T, ID> idExtractor,
+                                                         ID id) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(idExtractor, "idExtractor must not be null");
+        if (id == null) {
+            throw new IllegalArgumentException("id must not be null");
+        }
+        for (TreeNode<T> node : preorder(roots)) {
+            ID nodeId = idExtractor.apply(node.getData());
+            if (nodeId != null && nodeId.equals(id)) {
+                return Optional.of(node);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key, requiring unique keys.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the unique key index, keys in first-appearance order
+     * @throws NullPointerException if {@code root} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null or duplicated
+     */
+    public static <T, K> Map<K, TreeNode<T>> uniqueIndex(TreeNode<T> root,
+                                                         Function<T, K> keyExtractor) {
+        return uniqueIndex(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key, requiring unique keys.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order. Keys must be non-null and unique.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the unique key index
+     * @throws NullPointerException if {@code roots} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null or duplicated
+     */
+    public static <T, K> Map<K, TreeNode<T>> uniqueIndex(Collection<TreeNode<T>> roots,
+                                                         Function<T, K> keyExtractor) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(keyExtractor, "keyExtractor must not be null");
+        Map<K, TreeNode<T>> index = new LinkedHashMap<>();
+        for (TreeNode<T> node : preorder(roots)) {
+            K key = requireNonNullKey(keyExtractor.apply(node.getData()), node.getData());
+            if (index.containsKey(key)) {
+                throw new IllegalArgumentException("duplicate key: " + key);
+            }
+            index.put(key, node);
+        }
+        return index;
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key, requiring unique keys;
+     * values are the business data.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the unique key index, keys in first-appearance order
+     * @throws NullPointerException if {@code root} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null or duplicated
+     */
+    public static <T, K> Map<K, T> uniqueIndexData(TreeNode<T> root,
+                                                   Function<T, K> keyExtractor) {
+        return uniqueIndexData(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key, requiring unique keys;
+     * values are the business data.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order. Keys must be non-null and unique.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the unique key index
+     * @throws NullPointerException if {@code roots} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null or duplicated
+     */
+    public static <T, K> Map<K, T> uniqueIndexData(Collection<TreeNode<T>> roots,
+                                                   Function<T, K> keyExtractor) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(keyExtractor, "keyExtractor must not be null");
+        Map<K, T> index = new LinkedHashMap<>();
+        for (TreeNode<T> node : preorder(roots)) {
+            K key = requireNonNullKey(keyExtractor.apply(node.getData()), node.getData());
+            if (index.containsKey(key)) {
+                throw new IllegalArgumentException("duplicate key: " + key);
+            }
+            index.put(key, node.getData());
+        }
+        return index;
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key; each value list keeps
+     * preorder order.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index
+     * @throws NullPointerException if {@code root} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<TreeNode<T>>> index(TreeNode<T> root,
+                                                         Function<T, K> keyExtractor) {
+        return index(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key; each value list keeps
+     * preorder order.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index
+     * @throws NullPointerException if {@code roots} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<TreeNode<T>>> index(Collection<TreeNode<T>> roots,
+                                                         Function<T, K> keyExtractor) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(keyExtractor, "keyExtractor must not be null");
+        Map<K, List<TreeNode<T>>> index = new LinkedHashMap<>();
+        for (TreeNode<T> node : preorder(roots)) {
+            K key = requireNonNullKey(keyExtractor.apply(node.getData()), node.getData());
+            index.computeIfAbsent(key, ignored -> new ArrayList<>()).add(node);
+        }
+        return index;
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key, sorting each group by
+     * the business data.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param comparator orders each group's nodes by business data; must not
+     *                   be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index, each group sorted
+     * @throws NullPointerException if {@code root}, {@code keyExtractor} or
+     *                              {@code comparator} is null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<TreeNode<T>>> index(TreeNode<T> root,
+                                                         Function<T, K> keyExtractor,
+                                                         Comparator<T> comparator) {
+        return index(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor, comparator);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key, sorting each group by
+     * the business data.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order. Grouping happens first, then each group is sorted with
+     * the comparator; the sort is stable.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param comparator orders each group's nodes by business data; must not
+     *                   be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index, each group sorted
+     * @throws NullPointerException if {@code roots}, {@code keyExtractor} or
+     *                              {@code comparator} is null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<TreeNode<T>>> index(Collection<TreeNode<T>> roots,
+                                                         Function<T, K> keyExtractor,
+                                                         Comparator<T> comparator) {
+        Objects.requireNonNull(comparator, "comparator must not be null");
+        Map<K, List<TreeNode<T>>> index = index(roots, keyExtractor);
+        Comparator<TreeNode<T>> nodeComparator = comparingData(comparator);
+        for (List<TreeNode<T>> group : index.values()) {
+            group.sort(nodeComparator);
+        }
+        return index;
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key; values are the business
+     * data, each list keeping preorder order.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index
+     * @throws NullPointerException if {@code root} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<T>> indexData(TreeNode<T> root,
+                                                   Function<T, K> keyExtractor) {
+        return indexData(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key; values are the business
+     * data, each list keeping preorder order.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index
+     * @throws NullPointerException if {@code roots} or {@code keyExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<T>> indexData(Collection<TreeNode<T>> roots,
+                                                   Function<T, K> keyExtractor) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(keyExtractor, "keyExtractor must not be null");
+        Map<K, List<T>> index = new LinkedHashMap<>();
+        for (TreeNode<T> node : preorder(roots)) {
+            K key = requireNonNullKey(keyExtractor.apply(node.getData()), node.getData());
+            index.computeIfAbsent(key, ignored -> new ArrayList<>()).add(node.getData());
+        }
+        return index;
+    }
+
+    /**
+     * Indexes one tree by an arbitrary business key, sorting each group by
+     * the business data; values are the business data.
+     *
+     * @param root the root node; must not be null
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param comparator orders each group's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index, each group sorted
+     * @throws NullPointerException if {@code root}, {@code keyExtractor} or
+     *                              {@code comparator} is null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<T>> indexData(TreeNode<T> root,
+                                                   Function<T, K> keyExtractor,
+                                                   Comparator<T> comparator) {
+        return indexData(List.of(Objects.requireNonNull(root, "root must not be null")), keyExtractor, comparator);
+    }
+
+    /**
+     * Indexes a forest by an arbitrary business key, sorting each group by
+     * the business data; values are the business data.
+     *
+     * <p>The map is a {@link LinkedHashMap}: keys keep their first-appearance
+     * (preorder) order. Grouping happens first, then each group is sorted with
+     * the comparator; the sort is stable.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields an empty map
+     * @param keyExtractor extracts the key of a node's data; must not be null
+     * @param comparator orders each group's data; must not be null
+     * @param <T> the business data type
+     * @param <K> the key type
+     * @return the key index, each group sorted
+     * @throws NullPointerException if {@code roots}, {@code keyExtractor} or
+     *                              {@code comparator} is null
+     * @throws IllegalArgumentException if a key is null
+     */
+    public static <T, K> Map<K, List<T>> indexData(Collection<TreeNode<T>> roots,
+                                                   Function<T, K> keyExtractor,
+                                                   Comparator<T> comparator) {
+        Objects.requireNonNull(comparator, "comparator must not be null");
+        Map<K, List<T>> index = indexData(roots, keyExtractor);
+        for (List<T> group : index.values()) {
+            group.sort(comparator);
+        }
+        return index;
+    }
+
+    /**
+     * Returns all descendants of the given node in preorder, excluding the
+     * node itself.
+     *
+     * @param node the node whose descendants should be returned; must not be
+     *             null
+     * @param <T> the business data type
+     * @return the descendants in preorder; empty for a leaf
+     * @throws NullPointerException if {@code node} is null
+     */
+    public static <T> List<TreeNode<T>> descendants(TreeNode<T> node) {
+        Objects.requireNonNull(node, "node must not be null");
+        List<TreeNode<T>> pre = preorder(node);
+        return new ArrayList<>(pre.subList(1, pre.size()));
+    }
+
+    /**
+     * Returns the business data of all descendants of the given node in
+     * preorder, excluding the node itself.
+     *
+     * @param node the node whose descendants should be returned; must not be
+     *             null
+     * @param <T> the business data type
+     * @return the descendants' data in preorder; empty for a leaf
+     * @throws NullPointerException if {@code node} is null
+     */
+    public static <T> List<T> descendantsData(TreeNode<T> node) {
+        return mapData(descendants(node));
+    }
+
+    /**
+     * Finds the path from a root to the first node whose extracted id equals
+     * the given id, searching in preorder.
+     *
+     * <p>The path is root-first and includes both the root and the target
+     * node. Nodes do not hold parent references, so the search always starts
+     * from the passed roots.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the path from root to target, or {@code Optional.empty()} if no
+     *         node matches
+     * @throws NullPointerException if {@code roots} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<List<TreeNode<T>>> findPath(Collection<TreeNode<T>> roots,
+                                                               Function<T, ID> idExtractor,
+                                                               ID id) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(idExtractor, "idExtractor must not be null");
+        if (id == null) {
+            throw new IllegalArgumentException("id must not be null");
+        }
+        Map<TreeNode<T>, TreeNode<T>> parent = new IdentityHashMap<>();
+        Deque<TreeNode<T>> stack = new ArrayDeque<>();
+        for (TreeNode<T> root : roots) {
+            parent.put(root, null);
+            stack.push(root);
+        }
+        while (!stack.isEmpty()) {
+            TreeNode<T> node = stack.pop();
+            ID nodeId = idExtractor.apply(node.getData());
+            if (nodeId != null && nodeId.equals(id)) {
+                return Optional.of(reconstructPath(parent, node));
+            }
+            List<TreeNode<T>> children = node.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                TreeNode<T> child = children.get(i);
+                parent.put(child, node);
+                stack.push(child);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Finds the business data path from a root to the first node whose
+     * extracted id equals the given id, searching in preorder.
+     *
+     * <p>The path is root-first and includes both the root and the target
+     * node.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the path data from root to target, or {@code Optional.empty()}
+     *         if no node matches
+     * @throws NullPointerException if {@code roots} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<List<T>> findPathData(Collection<TreeNode<T>> roots,
+                                                         Function<T, ID> idExtractor,
+                                                         ID id) {
+        return findPath(roots, idExtractor, id).map(TreeUtils::mapData);
+    }
+
+    private static <T> List<TreeNode<T>> reconstructPath(Map<TreeNode<T>, TreeNode<T>> parent,
+                                                         TreeNode<T> target) {
+        List<TreeNode<T>> path = new ArrayList<>();
+        TreeNode<T> node = target;
+        while (node != null) {
+            path.add(node);
+            node = parent.get(node);
+        }
+        Collections.reverse(path);
+        return path;
+    }
+
+    private static <T, K> K requireNonNullKey(K key, T data) {
+        if (key == null) {
+            throw new IllegalArgumentException("key must not be null for node: " + data);
+        }
+        return key;
+    }
+
+    private static void requireNonNegative(int depth) {
+        if (depth < 0) {
+            throw new IllegalArgumentException("depth must not be negative: " + depth);
         }
     }
 
