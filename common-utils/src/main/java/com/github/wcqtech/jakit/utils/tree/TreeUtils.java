@@ -1015,6 +1015,132 @@ public final class TreeUtils {
         return findPath(roots, idExtractor, id).map(TreeUtils::mapData);
     }
 
+    /**
+     * Finds the path from the given node up to its root, searching the forest
+     * for the node instance.
+     *
+     * <p>Equivalent to {@link #pathToRoot(Collection, TreeNode, boolean)} with
+     * {@code reverse = false}.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param node the node whose path to its root should be returned; must
+     *             not be null
+     * @param <T> the business data type
+     * @return the path from {@code node} to its root, node first, root last,
+     *         both included; {@code Optional.empty()} if {@code node} is not
+     *         part of the forest
+     * @throws NullPointerException if {@code roots} or {@code node} is null
+     */
+    public static <T> Optional<List<TreeNode<T>>> pathToRoot(Collection<TreeNode<T>> roots,
+                                                             TreeNode<T> node) {
+        return pathToRoot(roots, node, false);
+    }
+
+    /**
+     * Finds the path between the given node and its root, searching the
+     * forest for the node instance.
+     *
+     * <p>By default the path is node first and root last; with
+     * {@code reverse = true} it is root first and node last. Both ends are
+     * always included. Nodes do not hold parent references, so the search
+     * always starts from the passed roots and matches the node by identity.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param node the node whose path to its root should be returned; must
+     *             not be null
+     * @param reverse {@code true} returns the path root first and node last;
+     *                {@code false} (the default) returns it node first and
+     *                root last
+     * @param <T> the business data type
+     * @return the path between {@code node} and its root in the requested
+     *         order, or {@code Optional.empty()} if {@code node} is not part
+     *         of the forest
+     * @throws NullPointerException if {@code roots} or {@code node} is null
+     */
+    public static <T> Optional<List<TreeNode<T>>> pathToRoot(Collection<TreeNode<T>> roots,
+                                                             TreeNode<T> node,
+                                                             boolean reverse) {
+        Objects.requireNonNull(roots, "roots must not be null");
+        Objects.requireNonNull(node, "node must not be null");
+        Map<TreeNode<T>, TreeNode<T>> parent = new IdentityHashMap<>();
+        Deque<TreeNode<T>> stack = new ArrayDeque<>();
+        for (TreeNode<T> root : roots) {
+            parent.put(root, null);
+            stack.push(root);
+        }
+        while (!stack.isEmpty()) {
+            TreeNode<T> current = stack.pop();
+            if (current == node) {
+                List<TreeNode<T>> path = new ArrayList<>();
+                TreeNode<T> cursor = current;
+                while (cursor != null) {
+                    path.add(cursor);
+                    cursor = parent.get(cursor);
+                }
+                if (reverse) {
+                    Collections.reverse(path);
+                }
+                return Optional.of(path);
+            }
+            List<TreeNode<T>> children = current.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                TreeNode<T> child = children.get(i);
+                parent.put(child, current);
+                stack.push(child);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Finds the path from the given node up to the passed root, searching
+     * the subtree of the root for the node instance.
+     *
+     * <p>Equivalent to {@link #pathToRoot(TreeNode, TreeNode, boolean)} with
+     * {@code reverse = false}.
+     *
+     * @param root the root of the tree to search; must not be null
+     * @param node the node whose path to the root should be returned; must
+     *             not be null
+     * @param <T> the business data type
+     * @return the path from {@code node} up to {@code root}, node first, root
+     *         last, both included; {@code Optional.empty()} if {@code node}
+     *         is not part of the subtree of {@code root}
+     * @throws NullPointerException if {@code root} or {@code node} is null
+     */
+    public static <T> Optional<List<TreeNode<T>>> pathToRoot(TreeNode<T> root,
+                                                             TreeNode<T> node) {
+        return pathToRoot(List.of(Objects.requireNonNull(root, "root must not be null")), node);
+    }
+
+    /**
+     * Finds the path between the given node and the passed root, searching
+     * the subtree of the root for the node instance.
+     *
+     * <p>By default the path is node first and root last; with
+     * {@code reverse = true} it is root first and node last. Both ends are
+     * always included.
+     *
+     * @param root the root of the tree to search; must not be null
+     * @param node the node whose path to the root should be returned; must
+     *             not be null
+     * @param reverse {@code true} returns the path root first and node last;
+     *                {@code false} (the default) returns it node first and
+     *                root last
+     * @param <T> the business data type
+     * @return the path between {@code node} and {@code root} in the requested
+     *         order, or {@code Optional.empty()} if {@code node} is not part
+     *         of the subtree of {@code root}
+     * @throws NullPointerException if {@code root} or {@code node} is null
+     */
+    public static <T> Optional<List<TreeNode<T>>> pathToRoot(TreeNode<T> root,
+                                                             TreeNode<T> node,
+                                                             boolean reverse) {
+        return pathToRoot(List.of(Objects.requireNonNull(root, "root must not be null")), node, reverse);
+    }
+
     private static <T> List<TreeNode<T>> reconstructPath(Map<TreeNode<T>, TreeNode<T>> parent,
                                                          TreeNode<T> target) {
         List<TreeNode<T>> path = new ArrayList<>();

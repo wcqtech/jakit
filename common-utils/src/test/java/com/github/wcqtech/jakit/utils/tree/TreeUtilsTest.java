@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -509,6 +510,86 @@ class TreeUtilsTest {
 
         assertEquals(List.of(1, 2, 4), dataIds(TreeUtils.findPathData(roots, Node::id, 4).orElseThrow()));
         assertTrue(TreeUtils.findPathData(roots, Node::id, 99).isEmpty());
+    }
+
+    @Test
+    void pathToRootWalksFromNodeUpToRoot() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> node4 = TreeUtils.findById(roots, Node::id, 4).orElseThrow();
+        TreeNode<Node> node7 = TreeUtils.findById(roots, Node::id, 7).orElseThrow();
+
+        assertEquals(List.of(4, 2, 1), ids(TreeUtils.pathToRoot(roots, node4).orElseThrow()));
+        assertEquals(List.of(7, 6), ids(TreeUtils.pathToRoot(roots, node7).orElseThrow()));
+        // a root is its own path
+        assertEquals(List.of(1), ids(TreeUtils.pathToRoot(roots, roots.get(0)).orElseThrow()));
+    }
+
+    @Test
+    void pathToRootWithReverseSupportsBothDirections() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> node4 = TreeUtils.findById(roots, Node::id, 4).orElseThrow();
+
+        assertEquals(List.of(4, 2, 1), ids(TreeUtils.pathToRoot(roots, node4, false).orElseThrow()));
+        assertEquals(List.of(1, 2, 4), ids(TreeUtils.pathToRoot(roots, node4, true).orElseThrow()));
+        // a root is its own path in both directions
+        assertEquals(List.of(1), ids(TreeUtils.pathToRoot(roots, roots.get(0), true).orElseThrow()));
+        // both directions contain the same nodes
+        assertEquals(
+                ids(TreeUtils.pathToRoot(roots, node4, false).orElseThrow()).stream().sorted().toList(),
+                ids(TreeUtils.pathToRoot(roots, node4, true).orElseThrow()).stream().sorted().toList());
+    }
+
+    @Test
+    void pathToRootWithSingleRootOverloads() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> root1 = roots.get(0);
+        TreeNode<Node> node4 = TreeUtils.findById(roots, Node::id, 4).orElseThrow();
+        TreeNode<Node> node7 = TreeUtils.findById(roots, Node::id, 7).orElseThrow();
+
+        assertEquals(List.of(4, 2, 1), ids(TreeUtils.pathToRoot(root1, node4).orElseThrow()));
+        assertEquals(List.of(1, 2, 4), ids(TreeUtils.pathToRoot(root1, node4, true).orElseThrow()));
+        List<Integer> nodeFirst = new ArrayList<>(ids(TreeUtils.pathToRoot(root1, node4, false).orElseThrow()));
+        Collections.reverse(nodeFirst);
+        assertEquals(nodeFirst, ids(TreeUtils.pathToRoot(root1, node4, true).orElseThrow()));
+        // a node from another tree is not under root 1
+        assertTrue(TreeUtils.pathToRoot(root1, node7).isEmpty());
+        // the root itself is its own path
+        assertEquals(List.of(1), ids(TreeUtils.pathToRoot(root1, root1).orElseThrow()));
+        assertEquals(List.of(1), ids(TreeUtils.pathToRoot(root1, root1, true).orElseThrow()));
+    }
+
+    @Test
+    void pathToRootIsReverseOfFindPath() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> node5 = TreeUtils.findById(roots, Node::id, 5).orElseThrow();
+
+        List<Integer> forward = new ArrayList<>(ids(TreeUtils.findPath(roots, Node::id, 5).orElseThrow()));
+        Collections.reverse(forward);
+        assertEquals(forward, ids(TreeUtils.pathToRoot(roots, node5).orElseThrow()));
+    }
+
+    @Test
+    void pathToRootReturnsEmptyForForeignOrMissingNode() {
+        List<TreeNode<Node>> roots = sampleForest();
+        List<TreeNode<Node>> other = TreeUtils.buildTree(List.of(node(100, null)), Node::id, Node::parentId);
+
+        assertTrue(TreeUtils.pathToRoot(List.of(), roots.get(0)).isEmpty());
+        assertTrue(TreeUtils.pathToRoot(roots, other.get(0)).isEmpty());
+    }
+
+    @Test
+    void pathToRootRejectsNullArguments() {
+        List<TreeNode<Node>> roots = sampleForest();
+
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRoot((Collection<TreeNode<Node>>) null, roots.get(0)));
+        assertThrows(NullPointerException.class, () -> TreeUtils.pathToRoot(roots, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRoot((TreeNode<Node>) null, roots.get(0)));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRoot(roots.get(0), null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRoot((TreeNode<Node>) null, roots.get(0), true));
     }
 
     @Test

@@ -332,6 +332,13 @@ List<TreeNode<Menu>> descendants = TreeUtils.descendants(node);
 
 // 从根到目标节点的路径，root 在前、目标在后、包含两端
 Optional<List<TreeNode<Menu>>> path = TreeUtils.findPath(roots, Menu::getId, 42L);
+
+// 从节点向上到根的路径（node 在前、根在后）；node 不在该森林时返回 Optional.empty()
+Optional<List<TreeNode<Menu>>> toRoot = TreeUtils.pathToRoot(roots, someNode);
+
+// reverse = true 时从根到节点（根在前、node 在后）
+Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, true);
+
 ```
 
 ### 说明

@@ -333,6 +333,15 @@ List<TreeNode<Menu>> descendants = TreeUtils.descendants(node);
 
 // Path from a root to the target node, root first, target last, both included
 Optional<List<TreeNode<Menu>>> path = TreeUtils.findPath(roots, Menu::getId, 42L);
+
+// Path from the node up to its root (node first, root last); empty if the
+// node is not part of the forest
+Optional<List<TreeNode<Menu>>> toRoot = TreeUtils.pathToRoot(roots, someNode);
+
+// reverse = true returns the path from the root to the node (root first,
+// node last)
+Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, true);
+
 ```
 
 ### Notes
