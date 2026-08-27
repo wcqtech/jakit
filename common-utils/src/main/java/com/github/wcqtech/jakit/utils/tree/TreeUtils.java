@@ -191,6 +191,27 @@ public final class TreeUtils {
     }
 
     /**
+     * Sorts every level of children of the given root with the supplied
+     * comparator.
+     *
+     * <p>The root itself has no siblings, so only its children levels are
+     * reordered. The sort is stable, so nodes with equal keys keep their
+     * current relative order.
+     *
+     * @param root the root node whose children levels should be sorted; must
+     *             not be null
+     * @param comparator orders sibling children by business data; must not be
+     *                   null
+     * @param <T> the business data type
+     * @throws NullPointerException if any argument is null
+     */
+    public static <T> void sort(TreeNode<T> root, Comparator<T> comparator) {
+        Objects.requireNonNull(root, "root must not be null");
+        Objects.requireNonNull(comparator, "comparator must not be null");
+        sortTree(root, comparingData(comparator));
+    }
+
+    /**
      * Traverses one tree in preorder (node before children).
      *
      * @param root the root node; must not be null
@@ -991,6 +1012,31 @@ public final class TreeUtils {
     }
 
     /**
+     * Finds the path from the given root to the first node whose extracted
+     * id equals the given id, searching the subtree of the root in preorder.
+     *
+     * <p>Equivalent to {@link #findPath(Collection, Function, Object)} with a
+     * single-element forest.
+     *
+     * @param root the root node whose subtree should be searched; must not be
+     *             null
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the path from root to target, or {@code Optional.empty()} if no
+     *         node matches
+     * @throws NullPointerException if {@code root} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<List<TreeNode<T>>> findPath(TreeNode<T> root,
+                                                               Function<T, ID> idExtractor,
+                                                               ID id) {
+        return findPath(List.of(Objects.requireNonNull(root, "root must not be null")), idExtractor, id);
+    }
+
+    /**
      * Finds the business data path from a root to the first node whose
      * extracted id equals the given id, searching in preorder.
      *
@@ -1013,6 +1059,32 @@ public final class TreeUtils {
                                                          Function<T, ID> idExtractor,
                                                          ID id) {
         return findPath(roots, idExtractor, id).map(TreeUtils::mapData);
+    }
+
+    /**
+     * Finds the business data path from the given root to the first node
+     * whose extracted id equals the given id, searching the subtree of the
+     * root in preorder.
+     *
+     * <p>Equivalent to {@link #findPathData(Collection, Function, Object)}
+     * with a single-element forest.
+     *
+     * @param root the root node whose subtree should be searched; must not be
+     *             null
+     * @param idExtractor extracts the id of a node's data; must not be null
+     * @param id the id to look for; must not be null
+     * @param <T> the business data type
+     * @param <ID> the id type
+     * @return the path data from root to target, or {@code Optional.empty()}
+     *         if no node matches
+     * @throws NullPointerException if {@code root} or {@code idExtractor} is
+     *                              null
+     * @throws IllegalArgumentException if {@code id} is null
+     */
+    public static <T, ID> Optional<List<T>> findPathData(TreeNode<T> root,
+                                                         Function<T, ID> idExtractor,
+                                                         ID id) {
+        return findPathData(List.of(Objects.requireNonNull(root, "root must not be null")), idExtractor, id);
     }
 
     /**
@@ -1139,6 +1211,102 @@ public final class TreeUtils {
                                                              TreeNode<T> node,
                                                              boolean reverse) {
         return pathToRoot(List.of(Objects.requireNonNull(root, "root must not be null")), node, reverse);
+    }
+
+    /**
+     * Returns the business data of the path from the given node up to its
+     * root, searching the forest for the node instance.
+     *
+     * <p>Equivalent to {@link #pathToRootData(Collection, TreeNode, boolean)}
+     * with {@code reverse = false}.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param node the node whose path to its root should be returned; must
+     *             not be null
+     * @param <T> the business data type
+     * @return the path data from {@code node} to its root, node first, root
+     *         last, both included; {@code Optional.empty()} if {@code node}
+     *         is not part of the forest
+     * @throws NullPointerException if {@code roots} or {@code node} is null
+     */
+    public static <T> Optional<List<T>> pathToRootData(Collection<TreeNode<T>> roots,
+                                                       TreeNode<T> node) {
+        return pathToRoot(roots, node).map(TreeUtils::mapData);
+    }
+
+    /**
+     * Returns the business data of the path between the given node and its
+     * root, searching the forest for the node instance.
+     *
+     * <p>By default the path data is node first and root last; with
+     * {@code reverse = true} it is root first and node last. Both ends are
+     * always included.
+     *
+     * @param roots the root nodes; must not be null; an empty collection
+     *              yields {@code Optional.empty()}
+     * @param node the node whose path to its root should be returned; must
+     *             not be null
+     * @param reverse {@code true} returns the path data root first and node
+     *                last; {@code false} (the default) returns it node first
+     *                and root last
+     * @param <T> the business data type
+     * @return the path data between {@code node} and its root in the
+     *         requested order, or {@code Optional.empty()} if {@code node}
+     *         is not part of the forest
+     * @throws NullPointerException if {@code roots} or {@code node} is null
+     */
+    public static <T> Optional<List<T>> pathToRootData(Collection<TreeNode<T>> roots,
+                                                       TreeNode<T> node,
+                                                       boolean reverse) {
+        return pathToRoot(roots, node, reverse).map(TreeUtils::mapData);
+    }
+
+    /**
+     * Returns the business data of the path from the given node up to the
+     * passed root, searching the subtree of the root for the node instance.
+     *
+     * <p>Equivalent to {@link #pathToRootData(TreeNode, TreeNode, boolean)}
+     * with {@code reverse = false}.
+     *
+     * @param root the root of the tree to search; must not be null
+     * @param node the node whose path to the root should be returned; must
+     *             not be null
+     * @param <T> the business data type
+     * @return the path data from {@code node} up to {@code root}, node first,
+     *         root last, both included; {@code Optional.empty()} if
+     *         {@code node} is not part of the subtree of {@code root}
+     * @throws NullPointerException if {@code root} or {@code node} is null
+     */
+    public static <T> Optional<List<T>> pathToRootData(TreeNode<T> root,
+                                                       TreeNode<T> node) {
+        return pathToRoot(root, node).map(TreeUtils::mapData);
+    }
+
+    /**
+     * Returns the business data of the path between the given node and the
+     * passed root, searching the subtree of the root for the node instance.
+     *
+     * <p>By default the path data is node first and root last; with
+     * {@code reverse = true} it is root first and node last. Both ends are
+     * always included.
+     *
+     * @param root the root of the tree to search; must not be null
+     * @param node the node whose path to the root should be returned; must
+     *             not be null
+     * @param reverse {@code true} returns the path data root first and node
+     *                last; {@code false} (the default) returns it node first
+     *                and root last
+     * @param <T> the business data type
+     * @return the path data between {@code node} and {@code root} in the
+     *         requested order, or {@code Optional.empty()} if {@code node}
+     *         is not part of the subtree of {@code root}
+     * @throws NullPointerException if {@code root} or {@code node} is null
+     */
+    public static <T> Optional<List<T>> pathToRootData(TreeNode<T> root,
+                                                       TreeNode<T> node,
+                                                       boolean reverse) {
+        return pathToRoot(root, node, reverse).map(TreeUtils::mapData);
     }
 
     private static <T> List<TreeNode<T>> reconstructPath(Map<TreeNode<T>, TreeNode<T>> parent,

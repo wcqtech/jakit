@@ -192,6 +192,22 @@ class TreeUtilsTest {
     }
 
     @Test
+    void sortSingleRootSortsEveryChildrenLevel() {
+        TreeNode<Node> root = TreeUtils.buildTree(List.of(
+                new Node(1, null, "A"),
+                new Node(2, 1, "D"),
+                new Node(3, 1, "C"),
+                new Node(4, 2, "F"),
+                new Node(5, 2, "E")
+        ), Node::id, Node::parentId).get(0);
+
+        TreeUtils.sort(root, Comparator.comparing(Node::name).reversed());
+
+        assertEquals(List.of(2, 3), ids(root.getChildren()));
+        assertEquals(List.of(4, 5), ids(root.getChildren().get(0).getChildren()));
+    }
+
+    @Test
     void publicSortIsStableForEqualKeys() {
         Node rootA = new Node(1, null, "same");
         Node rootB = new Node(2, null, "same");
@@ -505,6 +521,20 @@ class TreeUtilsTest {
     }
 
     @Test
+    void findPathWithSingleRootOverload() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> root1 = roots.get(0);
+
+        assertEquals(List.of(1, 2, 4), ids(TreeUtils.findPath(root1, Node::id, 4).orElseThrow()));
+        // node 7 lives in the other tree, not under root 1
+        assertTrue(TreeUtils.findPath(root1, Node::id, 7).isEmpty());
+        assertTrue(TreeUtils.findPath(root1, Node::id, 99).isEmpty());
+
+        assertEquals(List.of(1, 2, 4), dataIds(TreeUtils.findPathData(root1, Node::id, 4).orElseThrow()));
+        assertTrue(TreeUtils.findPathData(root1, Node::id, 7).isEmpty());
+    }
+
+    @Test
     void findPathDataReturnsBusinessDataPath() {
         List<TreeNode<Node>> roots = sampleForest();
 
@@ -559,6 +589,21 @@ class TreeUtilsTest {
     }
 
     @Test
+    void pathToRootDataReturnsBusinessDataPath() {
+        List<TreeNode<Node>> roots = sampleForest();
+        TreeNode<Node> root1 = roots.get(0);
+        TreeNode<Node> node4 = TreeUtils.findById(roots, Node::id, 4).orElseThrow();
+        TreeNode<Node> foreign = TreeUtils.buildTree(List.of(node(100, null)), Node::id, Node::parentId).get(0);
+
+        assertEquals(List.of(4, 2, 1), dataIds(TreeUtils.pathToRootData(roots, node4).orElseThrow()));
+        assertEquals(List.of(1, 2, 4), dataIds(TreeUtils.pathToRootData(roots, node4, true).orElseThrow()));
+        assertEquals(List.of(4, 2, 1), dataIds(TreeUtils.pathToRootData(root1, node4).orElseThrow()));
+        assertEquals(List.of(1, 2, 4), dataIds(TreeUtils.pathToRootData(root1, node4, true).orElseThrow()));
+        assertTrue(TreeUtils.pathToRootData(roots, foreign).isEmpty());
+        assertTrue(TreeUtils.pathToRootData(root1, foreign).isEmpty());
+    }
+
+    @Test
     void pathToRootIsReverseOfFindPath() {
         List<TreeNode<Node>> roots = sampleForest();
         TreeNode<Node> node5 = TreeUtils.findById(roots, Node::id, 5).orElseThrow();
@@ -590,6 +635,15 @@ class TreeUtilsTest {
                 () -> TreeUtils.pathToRoot(roots.get(0), null));
         assertThrows(NullPointerException.class,
                 () -> TreeUtils.pathToRoot((TreeNode<Node>) null, roots.get(0), true));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRootData((Collection<TreeNode<Node>>) null, roots.get(0)));
+        assertThrows(NullPointerException.class, () -> TreeUtils.pathToRootData(roots, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRootData((TreeNode<Node>) null, roots.get(0)));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRootData(roots.get(0), null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.pathToRootData((TreeNode<Node>) null, roots.get(0), true));
     }
 
     @Test
@@ -599,15 +653,25 @@ class TreeUtilsTest {
         assertThrows(NullPointerException.class, () -> TreeUtils.descendants(null));
         assertThrows(NullPointerException.class, () -> TreeUtils.descendantsData(null));
         assertThrows(NullPointerException.class,
-                () -> TreeUtils.findPath(null, Node::id, 1));
+                () -> TreeUtils.findPath((Collection<TreeNode<Node>>) null, Node::id, 1));
         assertThrows(NullPointerException.class,
                 () -> TreeUtils.findPath(roots, null, 1));
         assertThrows(NullPointerException.class,
-                () -> TreeUtils.findPathData(null, Node::id, 1));
+                () -> TreeUtils.findPathData((Collection<TreeNode<Node>>) null, Node::id, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPath((TreeNode<Node>) null, Node::id, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPath(roots.get(0), null, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPathData((TreeNode<Node>) null, Node::id, 1));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.findPathData(roots.get(0), null, 1));
         assertThrows(IllegalArgumentException.class,
                 () -> TreeUtils.findPath(roots, Node::id, null));
         assertThrows(IllegalArgumentException.class,
                 () -> TreeUtils.findPathData(roots, Node::id, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeUtils.findPath(roots.get(0), Node::id, null));
     }
 
     @Test
@@ -657,9 +721,13 @@ class TreeUtilsTest {
         List<TreeNode<Node>> roots = sampleForest();
 
         assertThrows(NullPointerException.class,
-                () -> TreeUtils.sort(null, Comparator.comparing(Node::name)));
+                () -> TreeUtils.sort((List<TreeNode<Node>>) null, Comparator.comparing(Node::name)));
         assertThrows(NullPointerException.class,
                 () -> TreeUtils.sort(roots, null));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.sort((TreeNode<Node>) null, Comparator.comparing(Node::name)));
+        assertThrows(NullPointerException.class,
+                () -> TreeUtils.sort(roots.get(0), null));
         assertThrows(NullPointerException.class,
                 () -> TreeUtils.preorder((TreeNode<Node>) null));
         assertThrows(NullPointerException.class,
