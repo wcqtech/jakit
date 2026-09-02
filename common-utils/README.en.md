@@ -15,8 +15,9 @@ jakit's useful utilities module.
 | `BigDecimalUtils` | `BigDecimal` comparison, range checks, extremes, and aggregation |
 | `BigDecimalFormatUtils` | `BigDecimal` percentage and digit grouping formatting |
 | `ChineseAmountUtils` | Chinese digit grouping, RMB-symbol formatting, and uppercase conversion |
+| `TreeUtils` | Builds trees from flat data; sorting, traversal, lookup, and path extraction |
 
-Package layout: `com.github.wcqtech.jakit.utils`, with subpackages organized by feature, currently including `sequence`, `number`, and `amount`.
+Package layout: `com.github.wcqtech.jakit.utils`, with subpackages organized by feature, currently including `sequence`, `number`, `amount`, and `tree`.
 
 ## Requirements
 
@@ -257,3 +258,96 @@ ChineseAmountUtils.formatRmb(new BigDecimal("1.009"), RoundingMode.DOWN); // ￥
 - The integer part is grouped in four-digit sections using units such as `万`, `亿`, and `兆`, with `零` filling gaps between sections.
 - Results end with `整` when the fen digit is zero, and a `零` is inserted after the yuan when jiao is zero but fen is not.
 - Negative amounts are prefixed with `负`.
+
+## TreeUtils
+
+`com.github.wcqtech.jakit.utils.tree.TreeUtils`
+
+Easy to builds trees from flat business data and provides sorting, traversal, depth lookup, id lookup, indexing, and path extraction.
+
+### Building
+
+```java
+import com.github.wcqtech.jakit.utils.tree.TreeUtils;
+import com.github.wcqtech.jakit.utils.tree.TreeNode;
+
+import java.util.Comparator;
+import java.util.List;
+
+List<Menu> menus = ...;
+
+// A node becomes a root when its parentId is null or has no matching node;
+// the result is a forest
+List<TreeNode<Menu>> roots = TreeUtils.buildTree(menus, Menu::getId, Menu::getParentId);
+
+// With a comparator, roots and every level of children are sorted
+List<TreeNode<Menu>> sorted = TreeUtils.buildTree(menus, Menu::getId, Menu::getParentId,
+        Comparator.comparing(Menu::getName));
+
+// Sort after building
+TreeUtils.sort(roots, Comparator.comparing(Menu::getName));
+```
+
+- A duplicate id, a null id, or a cycle throws `IllegalArgumentException`.
+- Sorting with a comparator is stable: elements with equal keys keep their input order.
+
+### Traversal
+
+```java
+TreeUtils.preorder(roots);    // preorder: node before its children
+TreeUtils.postorder(roots);   // postorder: children before their node
+TreeUtils.bfs(roots);         // breadth-first, level by level
+
+// Data variants return the business data directly
+TreeUtils.preorderData(roots);
+TreeUtils.bfsData(roots);
+
+// Depth-limited: maxDepth is relative to the passed roots; 0 visits roots only
+TreeUtils.preorder(roots, 0); // roots only
+TreeUtils.preorder(roots, 1); // roots and direct children
+TreeUtils.bfs(roots, 2);
+```
+
+### Lookup and Indexing
+
+```java
+// Find by id; returns Optional.empty() when nothing matches
+Optional<TreeNode<Menu>> found = TreeUtils.findById(roots, Menu::getId, 42L);
+
+// Nodes located at the given depth
+List<TreeNode<Menu>> level = TreeUtils.findAtDepth(roots, 2);
+
+// Unique-key index: duplicate or null keys throw IllegalArgumentException
+Map<String, TreeNode<Menu>> byCode = TreeUtils.uniqueIndex(roots, Menu::getCode);
+
+// Plain-key index: values keep traversal order; each group can be sorted
+Map<Long, List<TreeNode<Menu>>> byParent = TreeUtils.index(roots, Menu::getParentId,
+        Comparator.comparing(Menu::getSort));
+```
+
+### Descendants and Paths
+
+```java
+// All descendants in preorder, excluding the node itself
+List<TreeNode<Menu>> descendants = TreeUtils.descendants(node);
+
+// Path from a root to the target node, root first, target last, both included
+Optional<List<TreeNode<Menu>>> path = TreeUtils.findPath(roots, Menu::getId, 42L);
+
+// Path from the node up to its root (node first, root last); empty if the
+// node is not part of the forest
+Optional<List<TreeNode<Menu>>> toRoot = TreeUtils.pathToRoot(roots, someNode);
+
+// reverse = true returns the path from the root to the node (root first,
+// node last)
+Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, true);
+
+```
+
+### Notes
+
+- `TreeNode<T>` is immutable and holds no parent reference, which makes trees safe to share, cache, and serialize; `getChildren()` returns a read-only view.
+- Depth always starts at 0 for the root; the depth of depth-limited traversal and `findAtDepth` is relative to the passed roots.
+- A null collection argument throws `NullPointerException`; an empty collection yields an empty result; a negative `maxDepth`/`depth` throws `IllegalArgumentException`.
+- Extractors, `keyExtractor`, and comparators must not be null; a null extracted id or key throws `IllegalArgumentException`.
+- Traversal, sorting, and lookup never modify the tree structure.

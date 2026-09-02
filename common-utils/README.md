@@ -15,8 +15,9 @@ jakit 的实用工具模块。
 | `BigDecimalUtils` | `BigDecimal` 比较、范围判断、极值与聚合计算 |
 | `BigDecimalFormatUtils` | `BigDecimal` 百分比与数字分组格式化 |
 | `ChineseAmountUtils` | 中文金额分组、RMB 符号格式与大写转换 |
+| `TreeUtils` | 扁平数据构建树、排序、遍历、查找与路径提取 |
 
-包结构：`com.github.wcqtech.jakit.utils`，按功能子包扩展，目前包含 `sequence`、`number` 与 `amount`。
+包结构：`com.github.wcqtech.jakit.utils`，按功能子包扩展，目前包含 `sequence`、`number`、`amount` 与 `tree`。
 
 ## 环境要求
 
@@ -257,3 +258,93 @@ ChineseAmountUtils.formatRmb(new BigDecimal("1.009"), RoundingMode.DOWN); // ￥
 - 整数部分按四位一节使用 `万、亿、兆` 等单位，中间空位补 `零`。
 - 分位为 0 时以 `整` 结尾，角位为 0 而分位非 0 时在元后补 `零`。
 - 负数以 `负` 开头。
+
+## TreeUtils
+
+`com.github.wcqtech.jakit.utils.tree.TreeUtils`
+
+便捷的把扁平业务数据构建为树形结构，并提供排序、遍历、指定深度查找、id 查找、索引与路径提取等高频能力。
+
+### 构建
+
+```java
+import com.github.wcqtech.jakit.utils.tree.TreeUtils;
+import com.github.wcqtech.jakit.utils.tree.TreeNode;
+
+import java.util.Comparator;
+import java.util.List;
+
+List<Menu> menus = ...;
+
+// parentId 为 null 或找不到对应节点时成为根节点，返回森林
+List<TreeNode<Menu>> roots = TreeUtils.buildTree(menus, Menu::getId, Menu::getParentId);
+
+// 带 comparator 时对 roots 与每层 children 排序
+List<TreeNode<Menu>> sorted = TreeUtils.buildTree(menus, Menu::getId, Menu::getParentId,
+        Comparator.comparing(Menu::getName));
+
+// 构建后排序
+TreeUtils.sort(roots, Comparator.comparing(Menu::getName));
+```
+
+- 重复 id、id 为 null 或存在环时抛 `IllegalArgumentException`。
+- 带 comparator 的排序是稳定排序，相同排序值保持输入顺序。
+
+### 遍历
+
+```java
+TreeUtils.preorder(roots);    // 前序：节点先于 children
+TreeUtils.postorder(roots);   // 后序：children 先于节点
+TreeUtils.bfs(roots);         // 广度优先，逐层
+
+// Data 版本直接返回业务数据
+TreeUtils.preorderData(roots);
+TreeUtils.bfsData(roots);
+
+// 深度受限：maxDepth 相对本次传入的根节点，0 只返回根
+TreeUtils.preorder(roots, 0); // 仅根节点
+TreeUtils.preorder(roots, 1); // 根与直接 children
+TreeUtils.bfs(roots, 2);
+```
+
+### 查找与索引
+
+```java
+// 按 id 查找，未命中返回 Optional.empty()
+Optional<TreeNode<Menu>> found = TreeUtils.findById(roots, Menu::getId, 42L);
+
+// 位于指定深度的节点
+List<TreeNode<Menu>> level = TreeUtils.findAtDepth(roots, 2);
+
+// 唯一键索引：key 重复或为 null 抛 IllegalArgumentException
+Map<String, TreeNode<Menu>> byCode = TreeUtils.uniqueIndex(roots, Menu::getCode);
+
+// 普通键索引：value 保持遍历顺序，可对每组排序
+Map<Long, List<TreeNode<Menu>>> byParent = TreeUtils.index(roots, Menu::getParentId,
+        Comparator.comparing(Menu::getSort));
+```
+
+### 后代与路径
+
+```java
+// 全部后代，不包含节点自身，按前序排列
+List<TreeNode<Menu>> descendants = TreeUtils.descendants(node);
+
+// 从根到目标节点的路径，root 在前、目标在后、包含两端
+Optional<List<TreeNode<Menu>>> path = TreeUtils.findPath(roots, Menu::getId, 42L);
+
+// 从节点向上到根的路径（node 在前、根在后）；node 不在该森林时返回 Optional.empty()
+Optional<List<TreeNode<Menu>>> toRoot = TreeUtils.pathToRoot(roots, someNode);
+
+// reverse = true 时从根到节点（根在前、node 在后）
+Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, true);
+
+```
+
+### 说明
+
+- `TreeNode<T>` 不可变，不持有 parent 引用，便于共享、缓存与序列化；`getChildren()` 返回只读视图。
+- 深度一律以 0 为根；深度受限遍历与 `findAtDepth` 的深度相对本次传入的根节点计算。
+- 集合入参为 null 抛 `NullPointerException`；空集合返回空结果；`maxDepth`/`depth` 为负抛 `IllegalArgumentException`。
+- 提取器、keyExtractor 与 comparator 不可为 null；id 或 key 提取结果为 null 抛 `IllegalArgumentException`。
+- 遍历、排序、查找均不修改树结构。
