@@ -16,8 +16,9 @@ jakit's useful utilities module.
 | `BigDecimalFormatUtils` | `BigDecimal` percentage and digit grouping formatting |
 | `ChineseAmountUtils` | Chinese digit grouping, RMB-symbol formatting, and uppercase conversion |
 | `TreeUtils` | Builds trees from flat data; sorting, traversal, lookup, and path extraction |
+| `MockUtils` | Deterministically produces fully-populated mock data with annotation control over fields |
 
-Package layout: `com.github.wcqtech.jakit.utils`, with subpackages organized by feature, currently including `sequence`, `number`, `amount`, and `tree`.
+Package layout: `com.github.wcqtech.jakit.utils`, with subpackages organized by feature, currently including `sequence`, `number`, `amount`, `tree`, and `mock`.
 
 ## Requirements
 
@@ -351,3 +352,106 @@ Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, 
 - A null collection argument throws `NullPointerException`; an empty collection yields an empty result; a negative `maxDepth`/`depth` throws `IllegalArgumentException`.
 - Extractors, `keyExtractor`, and comparators must not be null; a null extracted id or key throws `IllegalArgumentException`.
 - Traversal, sorting, and lookup never modify the tree structure.
+
+## MockUtils
+
+`com.github.wcqtech.jakit.utils.mock.MockUtils`
+
+Deterministically produces mock data that is fully populated with non-null fields (fields can opt out via annotations), for use in tests. Two calls on the same structure yield the same values, which makes assertions easy; zero third-party dependencies.
+
+### Basic Usage
+
+```java
+import com.github.wcqtech.jakit.utils.mock.MockUtils;
+
+Order order = MockUtils.mock(Order.class); // fully populates all fields
+
+// exactly 5 instances (values differ between elements)
+List<Order> orders = MockUtils.multiMock(Order.class, 5).toList();
+
+// unbounded stream, truncated on demand: the first 3 match multiMock(Order.class, 3)
+List<Order> head = MockUtils.multiMock(Order.class).limit(3).toList();
+```
+
+Field filling rules, in priority order:
+
+1. `@MockIgnore`: skip the field; references stay null and primitives keep their JVM default value;
+2. `@MockWith`: use the specified `Mocker`; throws if the produced value is incompatible with the field type;
+3. default rules: `String`, numeric wrappers (primitives are matched via their wrapper type), `BigDecimal`, `BigInteger`, `LocalDateTime`, and enums (first constant);
+4. collections / arrays / `Map`: populated from the element types declared on the field; collections and arrays get 3 elements and maps get 3 entries (see `MockUtils.DEFAULT_ELEMENT_COUNT`); elements follow the same rules recursively;
+5. other user-defined classes: instantiated reflectively via a no-arg constructor and filled recursively; a field whose type is already being constructed (a cycle such as a self reference or `A↔B`) is set to null.
+
+### Annotation Control
+
+```java
+public class Order {
+    private String orderNo;              // StringMocker: "mock-xxx", length ≤ 16
+    private BigDecimal amount;           // BigDecimalMocker: 2 decimal digits, |value| ≤ 9999.99
+    private LocalDateTime createdAt;     // within the 10-year window starting 2020-01-01
+    private List<OrderItem> items;       // 3 OrderItems, filled recursively
+    @MockWith(PositiveBigDecimalMocker.class)
+    private BigDecimal payable;          // built-in mocker: strictly > 0
+    @MockWith(CNYUnitMocker.class)
+    private String amountUnit;           // custom mocker: one of 元/万元/亿元
+    @MockIgnore
+    private String internalTraceId;      // ignored: stays null
+}
+```
+
+- The `@MockWith` mocker must expose a no-arg constructor; an incompatible produced value throws `IllegalArgumentException` (the message contains the field path).
+- `final` instance fields cannot be assigned reflectively in a reliable way; add `@MockIgnore` to make the class mockable.
+- Unmockable structures throw `IllegalArgumentException` with guidance: `record`s, interfaces, abstract classes, classes without a no-arg constructor, and unregistered JDK types (e.g. `UUID`, `LocalDate`, `Instant`).
+
+### Custom Mocker
+
+A custom `Mocker` does **not** need to be registered to work with `@MockWith`: the annotation references the mocker implementation directly by class literal, and `MockUtils` instantiates and caches it (a no-arg constructor is required). `Mockers` only decides the default matching for unannotated fields; the two paths do not interfere — the same mocker can be used in `@MockWith` and registered in `Mockers`.
+
+A simple custom mocker that picks a currency unit from a pool:
+
+```java
+import com.github.wcqtech.jakit.utils.mock.MockContext;
+import com.github.wcqtech.jakit.utils.mock.Mocker;
+
+public class CNYUnitMocker implements Mocker<String> {
+
+    private static final String[] UNITS = { "元", "万元", "亿元" };
+
+    @Override
+    public String mock(MockContext context) {
+        // pick deterministically from the seed (field path + position); never use random numbers
+        return UNITS[Math.floorMod(context.getSeed(), UNITS.length)];
+    }
+}
+```
+
+`MockUtils.mock(Order.class)` fills `amountUnit` with one of "元"/"万元"/"亿元", consistently across repeated calls on the same structure.
+
+### Registering Custom Mockers
+
+Types without a built-in rule (JDK types or your own domain types) can be registered; once registered, fields of that type are no longer introspected recursively:
+
+```java
+import com.github.wcqtech.jakit.utils.mock.Mockers;
+
+// simple values can be provided with a lambda (Mocker is a functional interface with the single mock(MockContext) method)
+Mockers.register(LocalDate.class, ctx -> LocalDate.of(2020, 1, 1));
+
+// complex types implement Mocker
+Mockers.register(Carrier.class, ctx -> {
+    Carrier carrier = new Carrier();
+    carrier.setName("SF");
+    return carrier;
+});
+```
+
+- The most recently registered mocker wins: built-ins can be overridden, and a supertype rule such as `Number` also covers subtype fields like `Integer` (primitive fields are matched via their wrapper type).
+- Registered mockers should also stay stateless and deterministic, otherwise the "same structure, same value" guarantee is broken.
+
+### Notes
+
+- Fully deterministic end to end: mock values derive from the field path and position; two calls on the same structure are equal field by field; `multiMock` preserves the prefix property.
+- `MockUtils` and the registry are thread-safe and can be used concurrently / in parallel.
+- Enums always yield their first constant (e.g. `Level.LOW`).
+- `Set` elements may end up fewer than 3 because of deduplication.
+- Raw generics (e.g. `List` without a type argument) cannot be resolved and throw an exception; declare named type arguments such as `List<String>`.
+- Root types follow the same rules: `mock(Integer.class)` hits the registry directly, while `mock(Order.class)` is filled recursively.

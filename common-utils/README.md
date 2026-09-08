@@ -9,15 +9,16 @@ jakit 的实用工具模块。
 
 ## 工具类
 
-| 工具类 | 用途 |
-| --- | --- |
-| `SeqUtils` | 为集合元素按顺序分配序列号 |
-| `BigDecimalUtils` | `BigDecimal` 比较、范围判断、极值与聚合计算 |
-| `BigDecimalFormatUtils` | `BigDecimal` 百分比与数字分组格式化 |
-| `ChineseAmountUtils` | 中文金额分组、RMB 符号格式与大写转换 |
-| `TreeUtils` | 扁平数据构建树、排序、遍历、查找与路径提取 |
+| 工具类                     | 用途                           |
+| ----------------------- | ---------------------------- |
+| `SeqUtils`              | 为集合元素按顺序分配序列号                |
+| `BigDecimalUtils`       | `BigDecimal` 比较、范围判断、极值与聚合计算 |
+| `BigDecimalFormatUtils` | `BigDecimal` 百分比与数字分组格式化     |
+| `ChineseAmountUtils`    | 中文金额分组、RMB 符号格式与大写转换         |
+| `TreeUtils`             | 扁平数据构建树、排序、遍历、查找与路径提取        |
+| `MockUtils`             | 确定性生成结构完整、字段可注解控制的 Mock 数据   |
 
-包结构：`com.github.wcqtech.jakit.utils`，按功能子包扩展，目前包含 `sequence`、`number`、`amount` 与 `tree`。
+包结构：`com.github.wcqtech.jakit.utils`，按功能子包扩展，目前包含 `sequence`、`number`、`amount`、`tree` 与 `mock`。
 
 ## 环境要求
 
@@ -338,7 +339,6 @@ Optional<List<TreeNode<Menu>>> toRoot = TreeUtils.pathToRoot(roots, someNode);
 
 // reverse = true 时从根到节点（根在前、node 在后）
 Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, true);
-
 ```
 
 ### 说明
@@ -348,3 +348,106 @@ Optional<List<TreeNode<Menu>>> fromRoot = TreeUtils.pathToRoot(roots, someNode, 
 - 集合入参为 null 抛 `NullPointerException`；空集合返回空结果；`maxDepth`/`depth` 为负抛 `IllegalArgumentException`。
 - 提取器、keyExtractor 与 comparator 不可为 null；id 或 key 提取结果为 null 抛 `IllegalArgumentException`。
 - 遍历、排序、查找均不修改树结构。
+
+## MockUtils
+
+`com.github.wcqtech.jakit.utils.mock.MockUtils`
+
+确定性生成结构完整、字段非空（可注解豁免）的 Mock 数据，用于测试造数。同一结构两次调用产出相同的值，便于断言；零第三方依赖。
+
+### 基本用法
+
+```java
+import com.github.wcqtech.jakit.utils.mock.MockUtils;
+
+Order order = MockUtils.mock(Order.class); // 深度填充所有字段
+
+// 批量生成恰好 5 个（元素间值互异）
+List<Order> orders = MockUtils.multiMock(Order.class, 5).toList();
+
+// 无界流按需截取：前 3 个与 multiMock(Order.class, 3) 的结果一致
+List<Order> head = MockUtils.multiMock(Order.class).limit(3).toList();
+```
+
+字段填充规则（按优先级）：
+
+1. `@MockIgnore`：跳过该字段，引用保持 null、原语保持 JVM 默认值；
+2. `@MockWith`：用指定的 Mocker 生成，产出的值与字段类型不符时抛异常；
+3. 默认规则：`String`、数值包装类型（原语自动按包装类型匹配）、`BigDecimal`、`BigInteger`、`LocalDateTime`，以及枚举（取首常量）；
+4. 集合 / 数组 / `Map`：按字段泛型声明的元素类型填充，集合与数组填 3 个元素、`Map` 填 3 条 entry（见 `MockUtils.DEFAULT_ELEMENT_COUNT`），元素递归走同一套规则；
+5. 其他用户类：反射调用无参构造后递归填充；若字段类型正在构造中（环引用，如自引用、`A↔B`），该字段置 null。
+
+### 注解控制
+
+```java
+public class Order {
+    private String orderNo;              // StringMocker："mock-xxx"，长度 ≤ 16
+    private BigDecimal amount;           // BigDecimalMocker：2 位小数，|值| ≤ 9999.99
+    private LocalDateTime createdAt;     // 2020-01-01 起 10 年窗口内
+    private List<OrderItem> items;       // 自动填充 3 个 OrderItem 并递归填充其字段
+    @MockWith(PositiveBigDecimalMocker.class)
+    private BigDecimal payable;          // 内置 Mocker：严格 > 0
+    @MockWith(CNYUnitMocker.class)
+    private String amountUnit;           // 自定义 Mocker：从 元/万元/亿元 中选择
+    @MockIgnore
+    private String internalTraceId;      // 忽略：保持 null
+} 
+```
+
+- `@MockWith` 引用的 Mocker 需有无参构造；产出的值与字段类型不符时抛 `IllegalArgumentException`（异常消息含字段路径）。
+- `final` 实例字段无法可靠反射赋值，必须加 `@MockIgnore` 才能 mock 该类。
+- 无法 mock 的结构抛 `IllegalArgumentException` 并给出指引：`record`、接口、抽象类、无无参构造的类，以及未注册的 JDK 类型（如 `UUID`、`LocalDate`、`Instant`）。
+
+### 自定义Mocker
+
+自定义 Mocker 通过 `@MockWith` 参与 mock 时**不需要注册**：注解以类字面量直接引用 Mocker 实现，`MockUtils` 内部实例化并缓存（要求无参构造）。`Mockers` 注册表只决定未标注字段的默认匹配，两条路径互不干扰——同一 Mocker 既可以写在 `@MockWith` 里，也可以注册到 `Mockers`。
+
+实现一个简单的自定义 Mocker（比如金额单位从池中选择）：
+
+```java
+import com.github.wcqtech.jakit.utils.mock.MockContext;
+import com.github.wcqtech.jakit.utils.mock.Mocker;
+
+public class CNYUnitMocker implements Mocker<String> {
+
+    private static final String[] UNITS = { "元", "万元", "亿元" };
+
+    @Override
+    public String mock(MockContext context) {
+        // 取值由 context 的 seed 决定（路径+位置），保证"同结构同值"；不要用随机数
+        return UNITS[Math.floorMod(context.getSeed(), UNITS.length)];
+    }
+}
+```
+
+`MockUtils.mock(Order.class)` 会把 `amountUnit` 填为"元"/"万元"/"亿元"之一，同一结构多次调用结果一致。
+
+### 注册自定义 Mocker
+
+未覆盖的类型（JDK 类型或自有领域类型）都可以注册规则，注册后该类型字段不再走递归：
+
+```java
+import com.github.wcqtech.jakit.utils.mock.Mockers;
+
+// 简单值可直接用 lambda（Mocker 是函数式接口，mock(MockContext) 单方法）
+Mockers.register(LocalDate.class, ctx -> LocalDate.of(2020, 1, 1));
+
+// 复杂类型实现 Mocker 接口
+Mockers.register(Carrier.class, ctx -> {
+    Carrier carrier = new Carrier();
+    carrier.setName("SF");
+    return carrier;
+});
+```
+
+- 后注册者优先：可覆盖内置规则，也可注册 `Number` 等超类型规则覆盖 `Integer` 等子类型字段（原语字段按包装类型匹配）。
+- 注册的 Mocker 也应保持无状态与确定性，否则会破坏"同结构同值"的保证。
+
+### 说明
+
+- 全链路确定性：mock 值由字段路径与位置派生，同结构两次调用逐字段相等；`multiMock` 前缀性质成立。
+- `MockUtils` 与注册表线程安全，可并发 / 并行调用。
+- 枚举统一取首常量（如 `Level.LOW`）。
+- `Set` 元素可能因去重少于 3 个。
+- 裸泛型（如不带类型参数的 `List`）无法解析元素类型，抛异常；请声明为 `List<String>` 形式的具名泛型。
+- 根类型同样适用上述规则：`mock(Integer.class)` 直接命中注册表，`mock(Order.class)` 递归填充。
