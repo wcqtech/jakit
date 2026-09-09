@@ -68,6 +68,15 @@ final class MockEngine {
         return value;
     }
 
+    /**
+     * Mocks one value from an explicit mocker; position &gt;= 0 denotes a
+     * stream element slot. The context has an empty path and a placeholder
+     * root type, since no type is bound to the mocker here.
+     */
+    static Object mockValue(Mocker<?> mocker, int position) {
+        return mocker.mock(new MockContext(Object.class, "", null, position));
+    }
+
     /** Mocks the fields of a freshly created instance of the given class. */
     private static Object newInstance(Class<?> type, String label) {
         if (type.isInterface()) {
