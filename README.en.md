@@ -11,13 +11,17 @@ jakit is a Java development toolkit.
 
 [common-utils](common-utils/README.en.md) is a collection of useful tools.
 
+[dbucket](dbucket-core/README.en.md) is a lightweight distributed token bucket backed by a relational database.
+
 ## Modules
 
-| Module | Description |
-| --- | --- |
+| Module | Description                                                                                                                                                             |
+| --- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `enum-dict-core` | Annotations, the `EnumDictSource` interface, `DictItem`, `EnumDictRegistry`, and `EnumDictConverter`. Zero Spring dependency, usable standalone in plain Java projects. |
-| `enum-dict-spring-boot-starter` | Spring Boot 3 auto-configuration that scans enum dictionaries in business packages, registers them in memory, and provides `EnumDictService` and `EnumDictUtils`. |
-| `common-utils` | Dependency-free common utility classes, including sequence, BigDecimal, and Chinese amount utilities. |
+| `enum-dict-spring-boot-starter` | Spring Boot 3 auto-configuration that scans enum dictionaries in business packages, registers them in memory, and provides `EnumDictService` and `EnumDictUtils`.       |
+| `common-utils` | Dependency-free common utility classes, including sequence, BigDecimal, and Chinese amount utilities.                                                                   |
+| `dbucket-core` | Facade API, `BucketStore` SPI, MySQL/PostgreSQL/KingbaseES dialect profiles, JDBC store and waiting policy. Needs only spring-jdbc.                                     |
+| `dbucket-spring-boot-starter` | Spring Boot 3 auto-configuration, the `@DBucket` method gate and optional Micrometer metrics.                                                                           |
 
 ## Requirements
 

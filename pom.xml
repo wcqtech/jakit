@@ -37,6 +37,8 @@
     <module>enum-dict-core</module>
     <module>enum-dict-spring-boot-starter</module>
     <module>common-utils</module>
+    <module>dbucket-core</module>
+    <module>dbucket-spring-boot-starter</module>
   </modules>
 
   <properties>

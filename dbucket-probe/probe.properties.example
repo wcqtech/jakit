@@ -1,0 +1,35 @@
+# 复制为 probe.properties 后填写账号密码（probe.properties 已 gitignore，不会入库）
+# 只需填写要测试的实例，未配置 url 的 target 会被跳过。
+#
+# profile 取值：
+#   mysql    = 真实 MySQL 8（NOW(6) + DATETIME(6) + ON DUPLICATE KEY UPDATE，无 RETURNING）
+#   pg       = PostgreSQL / KingbaseES PG 模式（EXTRACT(EPOCH ...) + TIMESTAMPTZ + ON CONFLICT + RETURNING）
+#   kb-mysql = KingbaseES MySQL 模式（NOW() 无精度参数 + TIMESTAMPDIFF + TIMESTAMP(6) + RETURNING）
+
+# ---------- MySQL ----------
+mysql.url=jdbc:mysql://localhost:3306/test?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+mysql.user=root
+mysql.password=
+mysql.driver=com.mysql.cj.jdbc.Driver
+mysql.profile=mysql
+
+# ---------- PostgreSQL ----------
+pg.url=jdbc:postgresql://localhost:54323/testdb
+pg.user=postgres
+pg.password=
+pg.driver=org.postgresql.Driver
+pg.profile=pg
+
+# ---------- KingbaseES V8R6 (MySQL 模式) ----------
+kingbase-mysql.url=jdbc:kingbase8://localhost:54321/test
+kingbase-mysql.user=system
+kingbase-mysql.password=
+kingbase-mysql.driver=com.kingbase8.Driver
+kingbase-mysql.profile=kb-mysql
+
+# ---------- KingbaseES V8R6 (PG 模式) ----------
+kingbase-pg.url=jdbc:kingbase8://localhost:54322/test
+kingbase-pg.user=system
+kingbase-pg.password=
+kingbase-pg.driver=com.kingbase8.Driver
+kingbase-pg.profile=pg
