@@ -77,6 +77,70 @@ public final class MockUtils {
     }
 
     /**
+     * Returns one value from the given mocker, bypassing the registry and the
+     * type-based filling rules.
+     *
+     * <p>The mocker receives a root context with an empty path and a
+     * placeholder root type ({@code Object.class}), so mockers that only
+     * derive their value from {@link MockContext#getSeed()} behave normally
+     * while mockers depending on the root type or field name see empty
+     * information. Calling this method twice with the same mocker yields the
+     * same value.
+     *
+     * @param mocker the mocker to use; must not be null
+     * @param <T> the value type produced by the mocker
+     * @return the mock value, never null unless the mocker deliberately
+     *         produces null
+     * @throws NullPointerException if {@code mocker} is null
+     */
+    public static <T> T mock(Mocker<T> mocker) {
+        Objects.requireNonNull(mocker, "mocker must not be null");
+        return value(mocker, -1);
+    }
+
+    /**
+     * Returns an unbounded stream of values from the given mocker.
+     *
+     * <p>Element {@code i} is produced from the position seed, so elements
+     * usually differ from each other and repeated calls are equal.
+     *
+     * @param mocker the mocker to use; must not be null
+     * @param <T> the value type produced by the mocker
+     * @return a lazy stream of mock values
+     * @throws NullPointerException if {@code mocker} is null
+     */
+    public static <T> Stream<T> multiMock(Mocker<T> mocker) {
+        Objects.requireNonNull(mocker, "mocker must not be null");
+        return Stream.iterate(0, index -> index + 1).map(index -> value(mocker, index));
+    }
+
+    /**
+     * Returns a stream of exactly {@code size} values from the given mocker.
+     *
+     * <p>Equivalent to {@link #multiMock(Mocker) multiMock(mocker).limit(size)}.
+     *
+     * @param mocker the mocker to use; must not be null
+     * @param size number of values to produce; must not be negative
+     * @param <T> the value type produced by the mocker
+     * @return a lazy stream of exactly {@code size} mock values
+     * @throws NullPointerException if {@code mocker} is null
+     * @throws IllegalArgumentException if {@code size} is negative
+     */
+    public static <T> Stream<T> multiMock(Mocker<T> mocker, int size) {
+        Objects.requireNonNull(mocker, "mocker must not be null");
+        if (size < 0) {
+            throw new IllegalArgumentException("size must not be negative, but was " + size);
+        }
+        return multiMock(mocker).limit(size);
+    }
+
+    /** Binds a mocker to one position and returns its typed value. */
+    @SuppressWarnings("unchecked")
+    private static <T> T value(Mocker<T> mocker, int position) {
+        return (T) MockEngine.mockValue(mocker, position);
+    }
+
+    /**
      * Returns an unbounded stream of distinct mock values of the given type.
      *
      * <p>The stream is lazy and deterministic: element {@code i} is produced

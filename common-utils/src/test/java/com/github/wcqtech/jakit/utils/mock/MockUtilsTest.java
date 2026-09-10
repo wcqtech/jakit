@@ -47,8 +47,9 @@ class MockUtilsTest {
 
     @Test
     void nullTypeIsRejected() {
-        assertThrows(NullPointerException.class, () -> MockUtils.mock(null));
-        assertThrows(NullPointerException.class, () -> MockUtils.multiMock(null));
+        assertThrows(NullPointerException.class, () -> MockUtils.mock((Class<?>) null));
+        assertThrows(NullPointerException.class, () -> MockUtils.multiMock((Class<?>) null));
+        assertThrows(NullPointerException.class, () -> MockUtils.multiMock((Class<?>) null, 3));
     }
 
     @Test
@@ -225,6 +226,73 @@ class MockUtilsTest {
         assertDeepEquals(three, threeAgain, "multi[0..2]");
         assertDeepEquals(three, five.subList(0, 3), "prefix");
         assertFalse(deepEquals(three.get(0), three.get(1)));
+    }
+
+    @Test
+    void mockFromMockerProducesOneDeterministicValue() {
+        Mocker<String> mocker = context -> "unit-" + Math.floorMod(context.getSeed(), 3);
+        String first = MockUtils.mock(mocker);
+        String second = MockUtils.mock(mocker);
+        assertEquals(first, second);
+        assertTrue(first.startsWith("unit-"));
+        assertTrue(first.length() >= "unit-".length());
+    }
+
+    @Test
+    void mockFromMockerReceivesPlaceholderRootContext() {
+        MockContext[] captured = new MockContext[1];
+        MockUtils.mock(context -> {
+            captured[0] = context;
+            return "x";
+        });
+        assertEquals(Object.class, captured[0].getRootType());
+        assertEquals("", captured[0].getPath());
+        assertEquals(-1, captured[0].getPosition());
+        assertNull(captured[0].getFieldName());
+    }
+
+    @Test
+    void multiMockFromMockerIsDeterministicWithPrefixProperty() {
+        Mocker<String> mocker = context -> Math.floorMod(context.getSeed(), 3) == 0 ? "元"
+                : Math.floorMod(context.getSeed(), 3) == 1 ? "万元" : "亿元";
+        List<String> three = MockUtils.multiMock(mocker, 3).collect(Collectors.toList());
+        List<String> threeAgain = MockUtils.multiMock(mocker, 3).collect(Collectors.toList());
+        List<String> five = MockUtils.multiMock(mocker, 5).collect(Collectors.toList());
+        assertEquals(three, threeAgain);
+        assertEquals(three, five.subList(0, 3));
+        Set<String> distinct = new java.util.HashSet<>(MockUtils.multiMock(mocker, 8).collect(Collectors.toList()));
+        assertTrue(distinct.size() >= 2, "values should vary across positions: " + distinct);
+        for (String value : distinct) {
+            assertTrue(Set.of("元", "万元", "亿元").contains(value), "unexpected value: " + value);
+        }
+    }
+
+    @Test
+    void multiMockFromMockerPassesPositionSeeds() {
+        List<MockContext> seen = new java.util.ArrayList<>();
+        MockUtils.multiMock(context -> {
+            seen.add(context);
+            return "x";
+        }, 3).toList();
+        assertEquals(3, seen.size());
+        for (int i = 0; i < seen.size(); i++) {
+            MockContext context = seen.get(i);
+            assertEquals(Object.class, context.getRootType());
+            assertEquals("", context.getPath());
+            assertEquals(i, context.getPosition());
+            assertNull(context.getFieldName());
+        }
+    }
+
+    @Test
+    void mockerBasedCallsValidateArguments() {
+        assertThrows(NullPointerException.class, () -> MockUtils.mock((Mocker<String>) null));
+        assertThrows(NullPointerException.class, () -> MockUtils.multiMock((Mocker<String>) null));
+        assertThrows(NullPointerException.class, () -> MockUtils.multiMock((Mocker<String>) null, 3));
+        assertEquals(0, MockUtils.multiMock((Mocker<String>) (context -> "x"), 0).count());
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> MockUtils.multiMock((Mocker<String>) (context -> "x"), -1));
+        assertTrue(error.getMessage().contains("negative"), error.getMessage());
     }
 
     @Test

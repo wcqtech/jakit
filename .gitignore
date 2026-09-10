@@ -55,3 +55,6 @@ Thumbs.db
 
 ### Local docs (not published) ###
 .docs/
+
+### Local probe credentials ###
+dbucket-probe/probe.properties

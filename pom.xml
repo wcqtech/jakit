@@ -4,7 +4,7 @@
 
   <groupId>com.github.wcqtech.jakit</groupId>
   <artifactId>jakit</artifactId>
-  <version>2026.09.08</version>
+  <version>2026.09.10</version>
   <packaging>pom</packaging>
 
   <name>jakit</name>
@@ -37,6 +37,8 @@
     <module>enum-dict-core</module>
     <module>enum-dict-spring-boot-starter</module>
     <module>common-utils</module>
+    <module>dbucket-core</module>
+    <module>dbucket-spring-boot-starter</module>
   </modules>
 
   <properties>
